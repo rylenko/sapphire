@@ -5,12 +5,23 @@ edition = "2021"
 
 [workspace]
 members = [
-	"crates/dr",
+	"crates/*",
 ]
-resolver = "2"
+
+[workspace.lints.clippy]
+complexity = "deny"
+correctness = "deny"
+pedantic = "deny"
+perf = "deny"
+style = "deny"
+suspicious = "deny"
+
+[workspace.lints.rust]
+missing_docs = "forbid"
+unsafe_code = "forbid"
 
 [[bin]]
-path = "crates/_bin_mock/main.rs"
+path = "_bin_mock/main.rs"
 name = "_bin_mock"
 
 # TODO: [[bench]]es

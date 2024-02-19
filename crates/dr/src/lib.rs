@@ -1,16 +1,7 @@
 /*!
-Double Ratchet algoritm for Sapphire.
+Double ratchet algorithm implementation for Sapphire.
 */
 
-#![deny(
-	clippy::complexity,
-	clippy::correctness,
-	clippy::pedantic,
-	clippy::perf,
-	clippy::style,
-	clippy::suspicious,
-	missing_docs
-)]
 #![feature(error_in_core)]
 #![no_std]
 

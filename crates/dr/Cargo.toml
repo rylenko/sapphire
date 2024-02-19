@@ -55,3 +55,6 @@ default-crypto = [
 	"dep:x25519-dalek",
 	"dep:zeroize",
 ]
+
+[lints]
+workspace = true
