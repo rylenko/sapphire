@@ -1,0 +1,16 @@
+[package]
+name = "sapphire"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = [
+	"crates/dr",
+]
+resolver = "2"
+
+[[bin]]
+path = "crates/_bin_mock/main.rs"
+name = "_bin_mock"
+
+# TODO: [[bench]]es
