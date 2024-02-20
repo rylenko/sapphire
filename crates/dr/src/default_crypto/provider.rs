@@ -37,7 +37,8 @@ impl crate::crypto::Provider for Provider {
 	) -> Result<alloc::vec::Vec<u8>, Self::EncryptError> {
 		use chacha20poly1305::{aead::Aead as _, KeyInit as _};
 
-		// Get output with keys and IV via HKDF
+		// Get encryption key, auth key and nonce via HKDF. [..32] is
+		// encryption key, [32..64] is auth key and [64..] is nonce.
 		let mut hkdf_out = zeroize::Zeroizing::new([0; 88]);
 		hkdf::Hkdf::<sha2::Sha256>::new(
 			Some(&ENCRYPT_HKDF_SALT),
@@ -46,28 +47,19 @@ impl crate::crypto::Provider for Provider {
 		.expand(ENCRYPT_HKDF_INFO, hkdf_out.as_mut())
 		.expect("88 is good length.");
 
-		// Split output into encryption key, auth key and IV
-		let mut encrypt_key = zeroize::Zeroizing::new([0; 32]);
-		encrypt_key.copy_from_slice(&hkdf_out[..32]);
-		let mut auth_key = zeroize::Zeroizing::new([0; 32]);
-		auth_key.copy_from_slice(&hkdf_out[32..64]);
-		let mut nonce = zeroize::Zeroizing::new([0; 24]);
-		nonce.copy_from_slice(&hkdf_out[64..]);
-
-		// Encrypt plain text with encryption key
-		let mut cipher = chacha20poly1305::XChaCha20Poly1305::new(
-			encrypt_key.as_ref().into(),
-		)
-		.encrypt(nonce.as_ref().into(), plain)?;
+		// Encrypt plain text using encryption key and nonce
+		let mut cipher =
+			chacha20poly1305::XChaCha20Poly1305::new((&hkdf_out[..32]).into())
+				.encrypt((&hkdf_out[64..]).into(), plain)?;
 
 		// Get HMAC output to append to cipher
 		let hmac_out: [u8; 32] = {
 			use hkdf::hmac::Mac;
 
-			// Create HMAC with auth key bytes as key
+			// Create HMAC using auth key
 			let mut hmac =
 				<hkdf::hmac::Hmac<sha2::Sha256> as Mac>::new_from_slice(
-					auth_key.as_ref(),
+					&hkdf_out[32..64],
 				)
 				.expect("Any size is good.");
 
@@ -82,8 +74,6 @@ impl crate::crypto::Provider for Provider {
 		};
 		cipher.extend(&hmac_out);
 
-		// Shrink and return encrypted result
-		cipher.shrink_to_fit();
 		Ok(cipher)
 	}
 
@@ -93,7 +83,8 @@ impl crate::crypto::Provider for Provider {
 	) -> Result<alloc::vec::Vec<u8>, Self::EncryptHeaderBytesError> {
 		use chacha20poly1305::{aead::Aead as _, KeyInit as _};
 
-		// Get output with keys and IV via HKDF
+		// Get encryption key and nonce via HKDF. [..32] is
+		// encryption key and [32..] is nonce.
 		let mut hkdf_out = zeroize::Zeroizing::new([0; 56]);
 		hkdf::Hkdf::<sha2::Sha256>::new(
 			Some(&ENCRYPT_HEADER_BYTES_HKDF_SALT),
@@ -102,17 +93,10 @@ impl crate::crypto::Provider for Provider {
 		.expand(ENCRYPT_HEADER_BYTES_HKDF_INFO, hkdf_out.as_mut())
 		.expect("56 is good length.");
 
-		// Split output into encryption key and nonce
-		let mut encrypt_key = zeroize::Zeroizing::new([0; 32]);
-		encrypt_key.copy_from_slice(&hkdf_out[..32]);
-		let mut nonce = zeroize::Zeroizing::new([0; 24]);
-		nonce.copy_from_slice(&hkdf_out[32..]);
-
 		// Encrypt plain text with encryption key
-		let cipher = chacha20poly1305::XChaCha20Poly1305::new(
-			encrypt_key.as_ref().into(),
-		)
-		.encrypt(nonce.as_ref().into(), bytes)?;
+		let cipher =
+			chacha20poly1305::XChaCha20Poly1305::new((&hkdf_out[..32]).into())
+				.encrypt((&hkdf_out[32..]).into(), bytes)?;
 		Ok(cipher)
 	}
 
