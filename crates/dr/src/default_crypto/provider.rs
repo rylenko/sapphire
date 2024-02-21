@@ -1,9 +1,8 @@
+const HEADER_HKDF_INFO: &[u8] = b"default_header_hkdf_info";
+const HEADER_HKDF_SALT: [u8; 56] = [0; 56];
+const HKDF_INFO: &[u8] = b"default_hkdf_info";
+const HKDF_SALT: [u8; 80] = [0; 80];
 const MSG_CHAIN_KEY_MAC_BYTE: u8 = 0x2;
-const ENCRYPT_HKDF_SALT: [u8; 80] = [0; 80];
-const ENCRYPT_HKDF_INFO: &[u8] = b"default_encrypt_hkdf_info";
-const ENCRYPT_HEADER_BYTES_HKDF_SALT: [u8; 56] = [0; 56];
-const ENCRYPT_HEADER_BYTES_HKDF_INFO: &[u8] =
-	b"default_encrypt_header_bytes_hkdf_info";
 const MSG_KEY_MAC_BYTE: u8 = 0x1;
 const KDF_ROOT_CHAIN_HKDF_INFO: &[u8] = b"default_kdf_root_chain_hkdf_info";
 
@@ -12,14 +11,91 @@ const KDF_ROOT_CHAIN_HKDF_INFO: &[u8] = b"default_kdf_root_chain_hkdf_info";
 pub struct Provider;
 
 impl crate::crypto::Provider for Provider {
+	type DecryptError = super::error::Decrypt;
+	type DecryptHeaderError = super::error::DecryptHeader;
 	type EncryptError = super::error::Encrypt;
-	type EncryptHeaderBytesError = super::error::EncryptHeaderBytes;
+	type EncryptHeaderError = super::error::EncryptHeader;
 	type HeaderKey = super::header_key::HeaderKey;
 	type KeyPair = super::key_pair::KeyPair;
 	type MsgChainKey = zeroize::Zeroizing<[u8; 32]>;
 	type MsgKey = zeroize::Zeroizing<[u8; 32]>;
 	type RootChainKey = zeroize::Zeroizing<[u8; 32]>;
 	type SharedSecret = x25519_dalek::SharedSecret;
+
+	fn decrypt(
+		key: &Self::MsgKey,
+		cipher: &[u8],
+		auth: &[&[u8]],
+	) -> Result<alloc::vec::Vec<u8>, Self::DecryptError> {
+		use chacha20poly1305::{aead::Aead as _, KeyInit as _};
+
+		// Get cipher's length without HMAC
+		if cipher.len() < 32 {
+			return Err(Self::DecryptError::NoHmac);
+		}
+		let cipher_len_without_hmac = cipher.len() - 32;
+
+		// Get cipher key, auth key and nonce via HKDF. [..32] is
+		// encryption key, [32..64] is auth key and [64..] is nonce.
+		let mut hkdf_out = zeroize::Zeroizing::new([0; 88]);
+		hkdf::Hkdf::<sha2::Sha256>::new(Some(&HKDF_SALT), key.as_ref())
+			.expand(HKDF_INFO, hkdf_out.as_mut())
+			.expect("88 is good length.");
+
+		// Calculate HMAC using received cipher and auth data
+		let got_hmac: [u8; 32] = {
+			use hkdf::hmac::Mac;
+
+			// Create HMAC using auth key
+			let mut hmac =
+				<hkdf::hmac::Hmac<sha2::Sha256> as Mac>::new_from_slice(
+					&hkdf_out[32..64],
+				)
+				.expect("Any size is good.");
+
+			// Update HMAC with cipher and auth data
+			hmac.update(cipher);
+			for a in auth {
+				hmac.update(a);
+			}
+
+			// Finalize HMAC and convert it to bytes
+			hmac.finalize().into_bytes().into()
+		};
+
+		// Compare HMACs
+		if got_hmac != cipher[cipher_len_without_hmac..] {
+			return Err(super::error::Decrypt::Auth);
+		}
+
+		// Decrypt plain text using cipher key and nonce
+		let plain =
+			chacha20poly1305::XChaCha20Poly1305::new((&hkdf_out[..32]).into())
+				.decrypt(
+					(&hkdf_out[64..]).into(),
+					&cipher[..cipher_len_without_hmac],
+				)?;
+		Ok(plain)
+	}
+
+	fn decrypt_header(
+		key: &Self::HeaderKey,
+		cipher: &[u8],
+	) -> Result<alloc::vec::Vec<u8>, Self::DecryptHeaderError> {
+		use chacha20poly1305::{aead::Aead as _, KeyInit as _};
+
+		// Get key and nonce via HKDF. [..32] is key and [32..] is nonce.
+		let mut hkdf_out = zeroize::Zeroizing::new([0; 56]);
+		hkdf::Hkdf::<sha2::Sha256>::new(Some(&HEADER_HKDF_SALT), key.as_ref())
+			.expand(HEADER_HKDF_INFO, hkdf_out.as_mut())
+			.expect("56 is good length.");
+
+		// Decrypt plain text with encryption key
+		let plain =
+			chacha20poly1305::XChaCha20Poly1305::new((&hkdf_out[..32]).into())
+				.decrypt((&hkdf_out[32..]).into(), cipher)?;
+		Ok(plain)
+	}
 
 	#[inline]
 	fn dh(
@@ -37,23 +113,20 @@ impl crate::crypto::Provider for Provider {
 	) -> Result<alloc::vec::Vec<u8>, Self::EncryptError> {
 		use chacha20poly1305::{aead::Aead as _, KeyInit as _};
 
-		// Get encryption key, auth key and nonce via HKDF. [..32] is
+		// Get cipher key, auth key and nonce via HKDF. [..32] is
 		// encryption key, [32..64] is auth key and [64..] is nonce.
 		let mut hkdf_out = zeroize::Zeroizing::new([0; 88]);
-		hkdf::Hkdf::<sha2::Sha256>::new(
-			Some(&ENCRYPT_HKDF_SALT),
-			key.as_ref(),
-		)
-		.expand(ENCRYPT_HKDF_INFO, hkdf_out.as_mut())
-		.expect("88 is good length.");
+		hkdf::Hkdf::<sha2::Sha256>::new(Some(&HKDF_SALT), key.as_ref())
+			.expand(HKDF_INFO, hkdf_out.as_mut())
+			.expect("88 is good length.");
 
 		// Encrypt plain text using encryption key and nonce
 		let mut cipher =
 			chacha20poly1305::XChaCha20Poly1305::new((&hkdf_out[..32]).into())
 				.encrypt((&hkdf_out[64..]).into(), plain)?;
 
-		// Get HMAC output to append to cipher
-		let hmac_out: [u8; 32] = {
+		// Authenticate
+		let hmac: [u8; 32] = {
 			use hkdf::hmac::Mac;
 
 			// Create HMAC using auth key
@@ -72,31 +145,29 @@ impl crate::crypto::Provider for Provider {
 			// Finalize HMAC and convert it to bytes
 			hmac.finalize().into_bytes().into()
 		};
-		cipher.extend(&hmac_out);
+
+		// Append authenticated HMAC to end of cipher text
+		cipher.extend(hmac);
 
 		Ok(cipher)
 	}
 
-	fn encrypt_header_bytes(
+	fn encrypt_header(
 		key: &Self::HeaderKey,
-		bytes: &[u8],
-	) -> Result<alloc::vec::Vec<u8>, Self::EncryptHeaderBytesError> {
+		plain: &[u8],
+	) -> Result<alloc::vec::Vec<u8>, Self::EncryptHeaderError> {
 		use chacha20poly1305::{aead::Aead as _, KeyInit as _};
 
-		// Get encryption key and nonce via HKDF. [..32] is
-		// encryption key and [32..] is nonce.
+		// Get key and nonce via HKDF. [..32] is key and [32..] is nonce.
 		let mut hkdf_out = zeroize::Zeroizing::new([0; 56]);
-		hkdf::Hkdf::<sha2::Sha256>::new(
-			Some(&ENCRYPT_HEADER_BYTES_HKDF_SALT),
-			key.as_ref(),
-		)
-		.expand(ENCRYPT_HEADER_BYTES_HKDF_INFO, hkdf_out.as_mut())
-		.expect("56 is good length.");
+		hkdf::Hkdf::<sha2::Sha256>::new(Some(&HEADER_HKDF_SALT), key.as_ref())
+			.expand(HEADER_HKDF_INFO, hkdf_out.as_mut())
+			.expect("56 is good length.");
 
 		// Encrypt plain text with encryption key
 		let cipher =
 			chacha20poly1305::XChaCha20Poly1305::new((&hkdf_out[..32]).into())
-				.encrypt((&hkdf_out[32..]).into(), bytes)?;
+				.encrypt((&hkdf_out[32..]).into(), plain)?;
 		Ok(cipher)
 	}
 

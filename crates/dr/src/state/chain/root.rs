@@ -20,7 +20,9 @@ where
 
 	/// Key derivation function.
 	///
-	/// Returns new chain and header keys.
+	/// # Return
+	///
+	/// New chain and header keys.
 	pub(in crate::state) fn kdf(
 		&mut self,
 		input: &P::SharedSecret,

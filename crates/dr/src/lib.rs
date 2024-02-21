@@ -2,6 +2,7 @@
 Double ratchet algorithm implementation for Sapphire.
 */
 
+#![forbid(missing_docs)]
 #![feature(error_in_core)]
 #![no_std]
 
@@ -12,4 +13,4 @@ pub mod crypto;
 pub mod default_crypto;
 mod state;
 
-pub use state::State;
+pub use state::{Num, State};

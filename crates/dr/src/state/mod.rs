@@ -4,9 +4,8 @@ Home of state for Alice and Bob, chains and header.
 
 mod chain;
 mod error;
-mod header;
 
-pub(super) type Num = u32;
+pub use chain::Num;
 
 /// State of Alice and Bob.
 #[rustfmt::skip]
@@ -37,6 +36,7 @@ where
 		shared_secret: P::RootChainKey,
 		shared_send_chain_header_key: P::HeaderKey,
 		shared_recv_chain_next_header_key: P::HeaderKey,
+		skipped_msg_keys_max_cnt: chain::Num,
 	) -> Self {
 		use crate::crypto::KeyPair as _;
 
@@ -52,7 +52,10 @@ where
 		Self {
 			local_key_pair,
 			remote_public_key: Some(bob_public_key),
-			recv_chain: chain::Recv::new(shared_recv_chain_next_header_key),
+			recv_chain: chain::Recv::new(
+				shared_recv_chain_next_header_key,
+				skipped_msg_keys_max_cnt,
+			),
 			root_chain,
 			send_chain: chain::Send::new(
 				Some(send_chain_key),
@@ -69,12 +72,16 @@ where
 		key_pair: P::KeyPair,
 		shared_secret: P::RootChainKey,
 		shared_send_chain_next_header_key: P::HeaderKey,
-		shared_recv_chain_header_key: P::HeaderKey,
+		shared_recv_chain_next_header_key: P::HeaderKey,
+		skipped_msg_keys_max_cnt: chain::Num,
 	) -> Self {
 		Self {
 			local_key_pair: key_pair,
 			remote_public_key: None,
-			recv_chain: chain::Recv::new(shared_recv_chain_header_key),
+			recv_chain: chain::Recv::new(
+				shared_recv_chain_next_header_key,
+				skipped_msg_keys_max_cnt,
+			),
 			root_chain: chain::Root::new(shared_secret),
 			send_chain: chain::Send::new(
 				None,
@@ -84,8 +91,56 @@ where
 		}
 	}
 
-	/// Encrypts `plain` and authenticates it with concatenation of `auth` and
-	/// encrypter header. Returns encrypted header and encrypted plain.
+	/// Decrypts `cipher` and authenticates it with concatenation of `auth` and
+	/// `encrypted_header`.
+	///
+	/// # Errors
+	///
+	/// See [`Decrypt`].
+	///
+	/// [`Decrypt`]: error::Decrypt
+	pub fn decrypt(
+		&mut self,
+		encrypted_header: &[u8],
+		cipher: &[u8],
+		auth: &[u8],
+	) -> Result<alloc::vec::Vec<u8>, error::Decrypt> {
+		// Trying to check whether the message was skipped
+		if let Some(msg_key) =
+			self.recv_chain.pop_skipped_msg_key(encrypted_header)?
+		{
+			let plain =
+				P::decrypt(&msg_key, cipher, &[auth, encrypted_header])
+					.map_err(|e| error::Decrypt::SkippedMsg(e.into()))?;
+			return Ok(plain);
+		}
+
+		// Trying to decrypt the header with the receiving chain
+		let (header, dh_ratchet_needed) =
+			self.recv_chain.decrypt_header(encrypted_header)?;
+		if dh_ratchet_needed {
+			// Skip current chain message keys and upgrade chains using DH
+			// ratchet
+			self.recv_chain
+				.skip_msg_keys(header.prev_send_chain_msgs_cnt())
+				.map_err(error::Decrypt::SkipOldChainMsgKeys)?;
+			self.dh_ratchet(header.public_key().clone());
+		}
+
+		// Skip message keys to get current key
+		self.recv_chain
+			.skip_msg_keys(header.msg_num())
+			.map_err(error::Decrypt::SkipCurrChainMsgKeys)?;
+
+		// Get key and decrypt
+		let (msg_key, _header_key) = self.recv_chain.kdf()?;
+		let plain = P::decrypt(&msg_key, cipher, &[auth, encrypted_header])
+			.map_err(|e| error::Decrypt::NewMsg(e.into()))?;
+		Ok(plain)
+	}
+
+	/// Encrypts `plain` text and authenticates it with concatenation of `auth`
+	/// and encrypted header.
 	///
 	/// # Errors
 	///
@@ -101,7 +156,7 @@ where
 
 		// Create header and encode it to bytes
 		let header_bytes = bincode::encode_to_vec(
-			header::Header::<P>::new(
+			chain::Header::<P>::new(
 				self.local_key_pair.public().to_owned(),
 				self.send_chain.next_msg_num(),
 				self.send_chain.prev_msgs_cnt(),
@@ -114,7 +169,7 @@ where
 
 		// Encrypt header's bytes
 		let encrypted_header_bytes =
-			P::encrypt_header_bytes(header_key, &header_bytes)
+			P::encrypt_header(header_key, &header_bytes)
 				.map_err(|e| error::Encrypt::HeaderBytes(e.into()))?;
 
 		// Encrypt plain data using message key and concatenation of user's

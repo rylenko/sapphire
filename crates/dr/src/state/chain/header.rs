@@ -1,6 +1,6 @@
 /// Header of new sent message.
 #[derive(Debug, Eq, PartialEq)]
-pub struct Header<P>
+pub(in crate::state) struct Header<P>
 where
 	P: crate::crypto::Provider,
 {
@@ -8,10 +8,10 @@ where
 	public_key: <P::KeyPair as crate::crypto::KeyPair>::Public,
 
 	/// Message number.
-	msg_num: super::chain::Num,
+	msg_num: super::num::Num,
 
 	/// Messages count in previous sending chain.
-	prev_send_chain_msgs_cnt: super::chain::Num,
+	prev_send_chain_msgs_cnt: super::num::Num,
 }
 
 impl<P> Header<P>
@@ -20,12 +20,34 @@ where
 {
 	#[inline]
 	#[must_use]
-	pub(super) const fn new(
+	pub(in crate::state) const fn new(
 		public_key: <P::KeyPair as crate::crypto::KeyPair>::Public,
-		msg_num: super::chain::Num,
-		prev_send_chain_msgs_cnt: super::chain::Num,
+		msg_num: super::num::Num,
+		prev_send_chain_msgs_cnt: super::num::Num,
 	) -> Self {
 		Self { public_key, msg_num, prev_send_chain_msgs_cnt }
+	}
+
+	#[inline]
+	#[must_use]
+	pub(in crate::state) const fn msg_num(&self) -> super::num::Num {
+		self.msg_num
+	}
+
+	#[inline]
+	#[must_use]
+	pub(in crate::state) const fn prev_send_chain_msgs_cnt(
+		&self,
+	) -> super::num::Num {
+		self.prev_send_chain_msgs_cnt
+	}
+
+	#[inline]
+	#[must_use]
+	pub(in crate::state) const fn public_key(
+		&self,
+	) -> &<P::KeyPair as crate::crypto::KeyPair>::Public {
+		&self.public_key
 	}
 }
 

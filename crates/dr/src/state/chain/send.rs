@@ -10,7 +10,7 @@ where
 	key: Option<P::MsgChainKey>,
 
 	/// Number of the next message.
-	msg_num: super::num::Num,
+	next_msg_num: super::num::Num,
 
 	/// Is initially a shared key. Later is the output of KDF from root key
 	/// and Diffie-Hellman output.
@@ -31,7 +31,13 @@ where
 		header_key: Option<P::HeaderKey>,
 		next_header_key: P::HeaderKey,
 	) -> Self {
-		Self { header_key, key, msg_num: 0, next_header_key, prev_msgs_cnt: 0 }
+		Self {
+			header_key,
+			key,
+			next_msg_num: 0,
+			next_header_key,
+			prev_msgs_cnt: 0,
+		}
 	}
 
 	/// Moves chain forward, updates current key and return new message key
@@ -44,7 +50,7 @@ where
 				Some(ref header_key) => {
 					let (new_key, msg_key) = P::kdf_msg_chain(key);
 					self.key = Some(new_key);
-					self.msg_num += 1;
+					self.next_msg_num += 1;
 					Ok((msg_key, header_key))
 				}
 				None => Err(super::error::SendKdf::NoHeaderKey),
@@ -56,7 +62,7 @@ where
 	#[inline]
 	#[must_use]
 	pub(in crate::state) const fn next_msg_num(&self) -> super::num::Num {
-		self.msg_num
+		self.next_msg_num
 	}
 
 	#[inline]
@@ -76,8 +82,8 @@ where
 			new_next_header_key,
 		));
 		self.key = Some(new_key);
-		self.prev_msgs_cnt = self.msg_num;
-		self.msg_num = 0;
+		self.prev_msgs_cnt = self.next_msg_num;
+		self.next_msg_num = 0;
 	}
 }
 
