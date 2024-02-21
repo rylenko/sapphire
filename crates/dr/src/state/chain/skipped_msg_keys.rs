@@ -1,8 +1,8 @@
 /// Storage for skipped message keys.
 #[repr(transparent)]
 pub(super) struct SkippedMsgKeys<P: crate::crypto::Provider>(
-	// Keys are not pair of header key and message number because of reference
-	// to header key in getting function
+	/// Keys are not pair of header key and message number because of
+	/// reference to header key in getting function
 	hashbrown::HashMap<
 		P::HeaderKey,
 		hashbrown::HashMap<super::num::Num, P::MsgKey>,
@@ -18,6 +18,18 @@ where
 	#[must_use]
 	pub(super) fn new() -> Self {
 		Self(hashbrown::HashMap::new())
+	}
+
+	#[cfg(test)]
+	#[inline]
+	#[must_use]
+	pub(super) fn inner(
+		&self,
+	) -> &hashbrown::HashMap<
+		P::HeaderKey,
+		hashbrown::HashMap<super::num::Num, P::MsgKey>,
+	> {
+		&self.0
 	}
 
 	/// Inserts new entry.
@@ -104,5 +116,10 @@ mod tests {
 
 		// Get
 		assert_eq!(a.0.get(&header_key).unwrap().get(&100).unwrap(), &msg_key);
+	}
+
+	#[test]
+	fn test_pop() {
+		// See receiving chain tests.
 	}
 }

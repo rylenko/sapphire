@@ -242,7 +242,7 @@ mod tests {
 	}
 
 	#[test]
-	fn test_skip_msg_keys() {
+	fn test_skip_msg_keys_and_pop_skipped_msg_key() {
 		use crate::crypto::Provider as _;
 
 		// Create chain and try skip too much
@@ -289,6 +289,7 @@ mod tests {
 			chain.pop_skipped_msg_key(&encrypted_header_1).unwrap(),
 			None
 		);
+		assert_eq!(chain.skipped_msg_keys.inner().len(), 1);
 		assert_eq!(
 			chain.pop_skipped_msg_key(&encrypted_header_2).unwrap().as_deref(),
 			Some(&*msg_key_2),
@@ -297,6 +298,7 @@ mod tests {
 			chain.pop_skipped_msg_key(&encrypted_header_2).unwrap(),
 			None
 		);
+		assert!(chain.skipped_msg_keys.inner().is_empty());
 	}
 
 	#[test]
