@@ -11,6 +11,10 @@ pub(in crate::state) use {
 	header::Header, recv::Recv, root::Root, send::Send,
 };
 
+/// Common trait for receiving and sending chains.
+///
+/// They are should provide the same API for new message keys creation and
+/// upgrading after Diffie-Hellman ratchet.
 pub(in crate::state) trait Chain<P>
 where
 	P: crate::crypto::Provider,
