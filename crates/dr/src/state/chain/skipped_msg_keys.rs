@@ -87,11 +87,22 @@ where
 	}
 }
 
-// #[cfg(test)]
-// mod tests {
-// #[test]
-// fn test_get() {
-// let storage = super::SkippedMsgKeys::new();
+#[cfg(test)]
+mod tests {
+	#[test]
+	fn test_insert() {
+		// Create test data
+		let header_key = <crate::default_crypto::Provider as crate::crypto::Provider>
+			::HeaderKey::from([1; 32]);
+		let msg_key = <crate::default_crypto::Provider as crate::crypto::Provider>
+			::MsgKey::from([2; 32]);
 
-// }
-// }
+		// Insert
+		let mut a =
+			super::SkippedMsgKeys::<crate::default_crypto::Provider>::new();
+		a.insert(header_key.clone(), 100, msg_key.clone());
+
+		// Get
+		assert_eq!(a.0.get(&header_key).unwrap().get(&100).unwrap(), &msg_key);
+	}
+}
