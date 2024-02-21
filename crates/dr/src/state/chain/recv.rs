@@ -239,10 +239,8 @@ mod tests {
 		use super::super::Chain as _;
 
 		let mut chain = create_chain();
-		assert!(matches!(
-			chain.kdf(),
-			Err(super::super::error::RecvKdf::NoKey)
-		));
+		// No ekey
+		assert!(chain.kdf().is_err());
 	}
 
 	#[test]

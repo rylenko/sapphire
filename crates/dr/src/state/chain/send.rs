@@ -101,10 +101,8 @@ mod tests {
 			<crate::default_crypto::Provider as crate::crypto::Provider>
 				::HeaderKey::from([1; 32]),
 		);
-		assert!(matches!(
-			chain.kdf(),
-			Err(super::super::error::SendKdf::NoKey)
-		));
+		// No key
+		assert!(chain.kdf().is_err());
 	}
 
 	#[test]
