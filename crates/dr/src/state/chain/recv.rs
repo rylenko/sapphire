@@ -94,25 +94,6 @@ where
 		Ok((header, need_to_upgrade))
 	}
 
-	/// Moves chain forward, updates current key and return new message key and
-	/// header key.
-	pub(in crate::state) fn kdf(
-		&mut self,
-	) -> Result<(P::MsgKey, &P::HeaderKey), super::error::RecvKdf> {
-		match self.key {
-			Some(ref key) => match self.header_key {
-				Some(ref header_key) => {
-					let (new_key, msg_key) = P::kdf_msg_chain(key);
-					self.key = Some(new_key);
-					self.next_msg_num += 1;
-					Ok((msg_key, header_key))
-				}
-				None => Err(super::error::RecvKdf::NoHeaderKey),
-			},
-			None => Err(super::error::RecvKdf::NoKey),
-		}
-	}
-
 	/// See [pop] for more.
 	///
 	/// [pop]: super::skipped_msg_keys::SkippedMsgKeys::pop
@@ -128,7 +109,7 @@ where
 		&mut self,
 		until: super::num::Num,
 	) -> Result<(), super::error::SkipMsgKeys> {
-		use alloc::borrow::ToOwned as _;
+		use {super::Chain as _, alloc::borrow::ToOwned as _};
 
 		// Validate `until`
 		if self.next_msg_num + self.skipped_msg_keys_max_cnt < until {
@@ -152,9 +133,30 @@ where
 
 		Ok(())
 	}
+}
 
-	/// Updates the chain as if it were the next chain.
-	pub(in crate::state) fn upgrade(
+impl<P> super::Chain<P> for Recv<P>
+where
+	P: crate::crypto::Provider,
+{
+	type KdfError = super::error::RecvKdf;
+
+	fn kdf(&mut self) -> Result<(P::MsgKey, &P::HeaderKey), Self::KdfError> {
+		match self.key {
+			Some(ref key) => match self.header_key {
+				Some(ref header_key) => {
+					let (new_key, msg_key) = P::kdf_msg_chain(key);
+					self.key = Some(new_key);
+					self.next_msg_num += 1;
+					Ok((msg_key, header_key))
+				}
+				None => Err(Self::KdfError::NoHeaderKey),
+			},
+			None => Err(Self::KdfError::NoKey),
+		}
+	}
+
+	fn upgrade(
 		&mut self,
 		new_key: P::MsgChainKey,
 		new_next_header_key: P::HeaderKey,
@@ -242,8 +244,19 @@ mod tests {
 	}
 
 	#[test]
+	fn test_kdf_error() {
+		use super::super::Chain as _;
+
+		let mut chain = create_chain();
+		assert!(matches!(
+			chain.kdf(),
+			Err(super::super::error::RecvKdf::NoKey)
+		));
+	}
+
+	#[test]
 	fn test_skip_msg_keys_and_pop_skipped_msg_key() {
-		use crate::crypto::Provider as _;
+		use {super::super::Chain as _, crate::crypto::Provider as _};
 
 		// Create chain and try skip too much
 		let mut chain = create_chain();
@@ -303,6 +316,8 @@ mod tests {
 
 	#[test]
 	fn test_upgrade_and_kdf() {
+		use super::super::Chain as _;
+
 		// Create chain
 		let mut chain = create_chain();
 		let old_next_header_key = chain.next_header_key.clone();
@@ -342,6 +357,7 @@ mod tests {
 		key: [u8; 32],
 		header_key: [u8; 32],
 	) {
+		use super::super::Chain as _;
 		chain.upgrade(
 			<crate::default_crypto::Provider as crate::crypto::Provider>
 				::MsgChainKey::from(key),

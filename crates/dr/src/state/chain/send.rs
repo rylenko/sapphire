@@ -40,25 +40,6 @@ where
 		}
 	}
 
-	/// Moves chain forward, updates current key and return new message key
-	/// with header key.
-	pub(in crate::state) fn kdf(
-		&mut self,
-	) -> Result<(P::MsgKey, &P::HeaderKey), super::error::SendKdf> {
-		match self.key {
-			Some(ref key) => match self.header_key {
-				Some(ref header_key) => {
-					let (new_key, msg_key) = P::kdf_msg_chain(key);
-					self.key = Some(new_key);
-					self.next_msg_num += 1;
-					Ok((msg_key, header_key))
-				}
-				None => Err(super::error::SendKdf::NoHeaderKey),
-			},
-			None => Err(super::error::SendKdf::NoKey),
-		}
-	}
-
 	#[inline]
 	#[must_use]
 	pub(in crate::state) const fn next_msg_num(&self) -> super::num::Num {
@@ -70,9 +51,30 @@ where
 	pub(in crate::state) const fn prev_msgs_cnt(&self) -> super::num::Num {
 		self.prev_msgs_cnt
 	}
+}
 
-	/// Upgrades the chain after Diffie-Hellman ratchet.
-	pub(in crate::state) fn upgrade(
+impl<P> super::Chain<P> for Send<P>
+where
+	P: crate::crypto::Provider,
+{
+	type KdfError = super::error::SendKdf;
+
+	fn kdf(&mut self) -> Result<(P::MsgKey, &P::HeaderKey), Self::KdfError> {
+		match self.key {
+			Some(ref key) => match self.header_key {
+				Some(ref header_key) => {
+					let (new_key, msg_key) = P::kdf_msg_chain(key);
+					self.key = Some(new_key);
+					self.next_msg_num += 1;
+					Ok((msg_key, header_key))
+				}
+				None => Err(Self::KdfError::NoHeaderKey),
+			},
+			None => Err(Self::KdfError::NoKey),
+		}
+	}
+
+	fn upgrade(
 		&mut self,
 		new_key: P::MsgChainKey,
 		new_next_header_key: P::HeaderKey,
@@ -91,6 +93,8 @@ where
 mod tests {
 	#[test]
 	fn test_kdf_error() {
+		use super::super::Chain as _;
+
 		let mut chain = super::Send::<crate::default_crypto::Provider>::new(
 			None,
 			None,
@@ -105,6 +109,8 @@ mod tests {
 
 	#[test]
 	fn test_kdf_and_upgrade_ok() -> Result<(), super::super::error::SendKdf> {
+		use super::super::Chain as _;
+
 		// Create chain
 		let old_key = <crate::default_crypto::Provider as crate::crypto::Provider>
 			::MsgChainKey::from([100; 32]);

@@ -105,6 +105,8 @@ where
 		cipher: &[u8],
 		auth: &[u8],
 	) -> Result<alloc::vec::Vec<u8>, error::Decrypt> {
+		use chain::Chain as _;
+
 		// Trying to check whether the message was skipped
 		if let Some(msg_key) =
 			self.recv_chain.pop_skipped_msg_key(encrypted_header)?
@@ -152,7 +154,10 @@ where
 		plain: &[u8],
 		auth: &[u8],
 	) -> Result<(alloc::vec::Vec<u8>, alloc::vec::Vec<u8>), error::Encrypt> {
-		use {crate::crypto::KeyPair as _, alloc::borrow::ToOwned as _};
+		use {
+			crate::crypto::KeyPair as _, alloc::borrow::ToOwned as _,
+			chain::Chain as _,
+		};
 
 		// Create header and encode it to bytes
 		let header_bytes = bincode::encode_to_vec(
@@ -186,7 +191,7 @@ where
 		&mut self,
 		new_remote_public_key: <P::KeyPair as crate::crypto::KeyPair>::Public,
 	) {
-		use crate::crypto::KeyPair as _;
+		use {crate::crypto::KeyPair as _, chain::Chain as _};
 
 		// Extract remote public key from the header
 		let remote_public_key_ref = {
