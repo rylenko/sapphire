@@ -63,35 +63,26 @@ where
 		encrypted_header: &[u8],
 	) -> Result<(super::header::Header<P>, bool), super::error::DecryptHeader>
 	{
-		let mut need_to_upgrade = false;
-
-		// Decrypt bytes
-		let bytes = match self.header_key {
-			Some(ref header_key) => {
-				// Try to decrypt with current header key
-				if let Ok(b) = P::decrypt_header(header_key, encrypted_header)
-				{
-					b
-				} else {
-					// Try to decrypt with next header key
-					let bytes = P::decrypt_header(
-						&self.next_header_key,
-						encrypted_header,
-					)
-					.map_err(|e| {
-						super::error::DecryptHeader::Decrypt(e.into())
-					})?;
-					need_to_upgrade = true;
-					bytes
-				}
-			}
-			None => return Err(super::error::DecryptHeader::NoKey),
+		let decode = |bytes| {
+			bincode::decode_from_slice(bytes, bincode::config::standard())
 		};
 
-		// Decode bytes
-		let header =
-			bincode::decode_from_slice(&bytes, bincode::config::standard())?.0;
-		Ok((header, need_to_upgrade))
+		// Try to decrypt with current header key
+		if let Some(ref header_key) = self.header_key {
+			if let Ok(bytes) = P::decrypt_header(header_key, encrypted_header)
+			{
+				return Ok((decode(&bytes)?.0, false));
+			}
+		}
+
+		// Try to decrypt with next header key
+		if let Ok(bytes) =
+			P::decrypt_header(&self.next_header_key, encrypted_header)
+		{
+			return Ok((decode(&bytes)?.0, true));
+		}
+
+		Err(super::error::DecryptHeader::KeysNotFit)
 	}
 
 	/// See [pop] for more.

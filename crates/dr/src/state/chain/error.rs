@@ -2,8 +2,7 @@
 #[non_exhaustive]
 pub enum DecryptHeader {
 	Decode(bincode::error::DecodeError),
-	Decrypt(alloc::boxed::Box<dyn core::error::Error>),
-	NoKey,
+	KeysNotFit,
 }
 
 impl From<bincode::error::DecodeError> for DecryptHeader {
@@ -20,8 +19,7 @@ impl core::error::Error for DecryptHeader {
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
 			// TODO: wait `bincode`'s implementation of `core::error::Error`
-			Self::Decode(_) | Self::NoKey => None,
-			Self::Decrypt(e) => Some(e.as_ref()),
+			Self::Decode(_) | Self::KeysNotFit => None,
 		}
 	}
 }
@@ -32,8 +30,9 @@ impl core::fmt::Display for DecryptHeader {
 			Self::Decode(e) => {
 				write!(f, "Failed to decode the header: {e}.")
 			}
-			Self::Decrypt(_) => write!(f, "Failed to decrypt the header."),
-			Self::NoKey => write!(f, "No header key to decrypt."),
+			Self::KeysNotFit => {
+				write!(f, "Keys do not fit..")
+			}
 		}
 	}
 }
