@@ -6,9 +6,7 @@ check-fmt:
 	@cargo fmt --all --check
 
 clippy:
-	# Better use this in future:
-	# @cargo clippy --all-features --tests --workspace -- -D warnings
-	@cargo clippy --all-features --benches --tests --workspace
+	@cargo clippy --all-features --tests --workspace -- -D warnings
 
 fmt:
 	@cargo fmt --all
