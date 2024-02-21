@@ -1,5 +1,5 @@
 /// Cryptography provider for Double Ratchet algorithm.
-pub trait Provider: Eq + PartialEq + core::fmt::Debug {
+pub trait Provider: Clone + Eq + PartialEq + core::fmt::Debug {
 	/// Decryption error.
 	type DecryptError: core::error::Error + 'static;
 

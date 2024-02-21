@@ -7,7 +7,7 @@ const MSG_KEY_MAC_BYTE: u8 = 0x1;
 const KDF_ROOT_CHAIN_HKDF_INFO: &[u8] = b"default_kdf_root_chain_hkdf_info";
 
 /// Default crypto provider.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Provider;
 
 impl crate::crypto::Provider for Provider {

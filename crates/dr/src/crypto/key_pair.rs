@@ -1,5 +1,5 @@
 /// Private and public key pair.
-pub trait KeyPair: Eq + PartialEq + core::fmt::Debug {
+pub trait KeyPair: Clone + Eq + PartialEq + core::fmt::Debug {
 	/// Private key of pair.
 	type Private;
 

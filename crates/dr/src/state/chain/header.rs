@@ -1,5 +1,5 @@
 /// Header of new sent message.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::state) struct Header<P>
 where
 	P: crate::crypto::Provider,

@@ -1,4 +1,5 @@
 /// Key pair based on [`x25519_dalek`].
+#[derive(Clone)]
 pub struct KeyPair(x25519_dalek::StaticSecret, super::public_key::PublicKey);
 
 impl Eq for KeyPair {}
