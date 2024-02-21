@@ -170,41 +170,49 @@ where
 
 #[cfg(test)]
 mod tests {
+	const SKIPPED_MSG_KEYS_MAX_CNT: super::super::num::Num = 100;
+
 	fn create_chain() -> super::Recv<crate::default_crypto::Provider> {
 		super::Recv::<crate::default_crypto::Provider>::new(
 			<crate::default_crypto::Provider as crate::crypto::Provider>
 				::HeaderKey::from([123; 32]),
-			100,
+			SKIPPED_MSG_KEYS_MAX_CNT,
 		)
+	}
+
+	fn create_header(
+		msg_num: super::super::num::Num,
+	) -> (
+		super::super::Header<crate::default_crypto::Provider>,
+		alloc::vec::Vec<u8>,
+	) {
+		// Create header
+		let header = super::super::Header::<crate::default_crypto::Provider>::new(
+			<crate::default_crypto::KeyPair as crate::crypto::KeyPair>
+				::Public::from([1; 32]),
+			msg_num,
+			100,
+		);
+
+		// Encode header
+		let header_bytes =
+			bincode::encode_to_vec(&header, bincode::config::standard())
+				.unwrap();
+
+		(header, header_bytes)
 	}
 
 	#[test]
 	fn test_decrypt_header() {
 		use crate::crypto::Provider as _;
 
-		// Create chain
+		// Create and upgrade chain
 		let mut chain = create_chain();
+		upgrade(&mut chain, [1; 32], [2; 32]);
 
-		// Upgrade chain
-		chain.upgrade(
-			<crate::default_crypto::Provider as crate::crypto::Provider>
-				::MsgChainKey::from([234; 32]),
-			<crate::default_crypto::Provider as crate::crypto::Provider>
-				::HeaderKey::from([120; 32]),
-		);
+		let (header, header_bytes) = create_header(1);
 
-		// Create header and encode it
-		let header = super::super::Header::<crate::default_crypto::Provider>::new(
-			<crate::default_crypto::KeyPair as crate::crypto::KeyPair>
-				::Public::from([1; 32]),
-			123,
-			456,
-		);
-		let header_bytes =
-			bincode::encode_to_vec(&header, bincode::config::standard())
-				.unwrap();
-
-		// Encrypt header bytes with different keys
+		// Encrypt header bytes with current header key
 		let encrypted_header =
 			crate::default_crypto::Provider::encrypt_header(
 				// `Option::unwrap` because of upgrade
@@ -212,6 +220,8 @@ mod tests {
 				&header_bytes,
 			)
 			.unwrap();
+
+		// Encrypt header bytes with next header key
 		let next_encrypted_header =
 			crate::default_crypto::Provider::encrypt_header(
 				&chain.next_header_key,
@@ -232,24 +242,77 @@ mod tests {
 	}
 
 	#[test]
+	fn test_skip_msg_keys() {
+		use crate::crypto::Provider as _;
+
+		// Create chain and try skip too much
+		let mut chain = create_chain();
+		assert!(chain.skip_msg_keys(SKIPPED_MSG_KEYS_MAX_CNT).is_err());
+
+		// Update chain to set key
+		upgrade(&mut chain, [1; 32], [2; 32]);
+
+		// Skip message keys
+		chain.skip_msg_keys(2).unwrap();
+		assert_eq!(chain.next_msg_num, 2);
+
+		// Create headers
+		let (_header_1, header_bytes_1) = create_header(0);
+		let (_header_2, header_bytes_2) = create_header(1);
+
+		// Create copy of chain
+		let mut chain_clone = create_chain();
+		upgrade(&mut chain_clone, [1; 32], [2; 32]);
+		let (msg_key_1, _) = chain_clone.kdf().unwrap();
+		let (msg_key_2, header_key) = chain_clone.kdf().unwrap();
+
+		// Encrypt headers
+		let encrypted_header_1 =
+			crate::default_crypto::Provider::encrypt_header(
+				header_key,
+				&header_bytes_1,
+			)
+			.unwrap();
+		let encrypted_header_2 =
+			crate::default_crypto::Provider::encrypt_header(
+				header_key,
+				&header_bytes_2,
+			)
+			.unwrap();
+
+		// Pop from original chain
+		assert_eq!(
+			chain.pop_skipped_msg_key(&encrypted_header_1).unwrap().as_deref(),
+			Some(&*msg_key_1),
+		);
+		assert_eq!(
+			chain.pop_skipped_msg_key(&encrypted_header_1).unwrap(),
+			None
+		);
+		assert_eq!(
+			chain.pop_skipped_msg_key(&encrypted_header_2).unwrap().as_deref(),
+			Some(&*msg_key_2),
+		);
+		assert_eq!(
+			chain.pop_skipped_msg_key(&encrypted_header_2).unwrap(),
+			None
+		);
+	}
+
+	#[test]
 	fn test_upgrade_and_kdf() {
 		// Create chain
 		let mut chain = create_chain();
 		let old_next_header_key = chain.next_header_key.clone();
 
 		// Upgrade chain
-		let key = <crate::default_crypto::Provider as crate::crypto::Provider>
-			::MsgChainKey::from([234; 32]);
-		let next_header_key =
-			<crate::default_crypto::Provider as crate::crypto::Provider>
-				::HeaderKey::from([120; 32]);
-		chain.upgrade(key.clone(), next_header_key.clone());
+		upgrade(&mut chain, [1; 32], [2; 32]);
 
 		// Check upgrade is done
 		assert_eq!(chain.header_key.as_ref(), Some(&old_next_header_key));
-		assert_eq!(chain.key.as_ref(), Some(&key));
+		assert_eq!(chain.key.as_deref(), Some(&[1; 32]));
 		assert_eq!(chain.next_msg_num, 0);
-		assert_eq!(chain.next_header_key, next_header_key);
+		assert_eq!(&*chain.next_header_key, &[2; 32]);
 
 		// Use KDF
 		chain.kdf().unwrap();
@@ -258,22 +321,30 @@ mod tests {
 
 		// Check KDF is done
 		assert_eq!(chain.header_key, Some(old_next_header_key));
-		assert_ne!(chain.key, Some(key));
+		assert_ne!(chain.key.as_deref(), Some(&[1; 32]));
 		assert_eq!(chain.next_msg_num, 3);
-		assert_eq!(chain.next_header_key, next_header_key);
+		assert_eq!(*chain.next_header_key, [2; 32]);
 
 		// Upgrade chain
-		let new_key = <crate::default_crypto::Provider as crate::crypto::Provider>
-			::MsgChainKey::from([200; 32]);
-		let new_next_header_key =
-			<crate::default_crypto::Provider as crate::crypto::Provider>
-				::HeaderKey::from([120; 32]);
-		chain.upgrade(new_key.clone(), new_next_header_key.clone());
+		upgrade(&mut chain, [3; 32], [4; 32]);
 
 		// Check upgrade is done
-		assert_eq!(chain.header_key, Some(next_header_key));
-		assert_eq!(chain.key, Some(new_key));
+		assert_eq!(chain.header_key.as_deref(), Some(&[2; 32]));
+		assert_eq!(chain.key.as_deref(), Some(&[3; 32]));
 		assert_eq!(chain.next_msg_num, 0);
-		assert_eq!(chain.next_header_key, new_next_header_key);
+		assert_eq!(*chain.next_header_key, [4; 32]);
+	}
+
+	fn upgrade(
+		chain: &mut super::Recv<crate::default_crypto::Provider>,
+		key: [u8; 32],
+		header_key: [u8; 32],
+	) {
+		chain.upgrade(
+			<crate::default_crypto::Provider as crate::crypto::Provider>
+				::MsgChainKey::from(key),
+			<crate::default_crypto::Provider as crate::crypto::Provider>
+				::HeaderKey::from(header_key),
+		);
 	}
 }
