@@ -27,7 +27,7 @@ pub trait Provider: Clone + Eq + PartialEq + core::fmt::Debug {
 	type MsgKey;
 
 	/// Key for root chain.
-	type RootChainKey;
+	type RootKey;
 
 	/// The result of Diffie-Hellman calculations.
 	type SharedSecret;
@@ -92,10 +92,10 @@ pub trait Provider: Clone + Eq + PartialEq + core::fmt::Debug {
 	/// Generates new root chain key, sending chain key and sending chain next
 	/// header key.
 	#[must_use]
-	fn kdf_root_chain(
-		key: &Self::RootChainKey,
+	fn kdf_root(
+		key: &Self::RootKey,
 		input: &Self::SharedSecret,
-	) -> (Self::RootChainKey, Self::MsgChainKey, Self::HeaderKey);
+	) -> (Self::RootKey, Self::MsgChainKey, Self::HeaderKey);
 
 	/// Generates new chain key and message key for sending and receive chains.
 	#[must_use]

@@ -4,7 +4,7 @@ const HKDF_INFO: &[u8] = b"default_hkdf_info";
 const HKDF_SALT: [u8; 80] = [0; 80];
 const MSG_CHAIN_KEY_MAC_BYTE: u8 = 0x2;
 const MSG_KEY_MAC_BYTE: u8 = 0x1;
-const KDF_ROOT_CHAIN_HKDF_INFO: &[u8] = b"default_kdf_root_chain_hkdf_info";
+const KDF_ROOT_CHAIN_HKDF_INFO: &[u8] = b"default_kdf_root_hkdf_info";
 
 /// Default crypto provider.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -19,7 +19,7 @@ impl crate::crypto::Provider for Provider {
 	type KeyPair = super::key_pair::KeyPair;
 	type MsgChainKey = zeroize::Zeroizing<[u8; 32]>;
 	type MsgKey = zeroize::Zeroizing<[u8; 32]>;
-	type RootChainKey = zeroize::Zeroizing<[u8; 32]>;
+	type RootKey = zeroize::Zeroizing<[u8; 32]>;
 	type SharedSecret = x25519_dalek::SharedSecret;
 
 	fn decrypt(
@@ -171,10 +171,10 @@ impl crate::crypto::Provider for Provider {
 		Ok(cipher)
 	}
 
-	fn kdf_root_chain(
-		key: &Self::RootChainKey,
+	fn kdf_root(
+		key: &Self::RootKey,
 		input: &Self::SharedSecret,
-	) -> (Self::RootChainKey, Self::MsgChainKey, Self::HeaderKey) {
+	) -> (Self::RootKey, Self::MsgChainKey, Self::HeaderKey) {
 		// Get output key material with new keys via HKDF
 		let mut hkdf_out = zeroize::Zeroizing::new([0; 96]);
 		hkdf::Hkdf::<sha2::Sha256>::new(Some(key.as_ref()), input.as_bytes())
@@ -182,14 +182,14 @@ impl crate::crypto::Provider for Provider {
 			.expect("96 is good length.");
 
 		// Split output into keys
-		let mut root_chain_key = Self::RootChainKey::from([0; 32]);
-		root_chain_key.copy_from_slice(&hkdf_out[..32]);
+		let mut root_key = Self::RootKey::from([0; 32]);
+		root_key.copy_from_slice(&hkdf_out[..32]);
 		let mut msg_chain_key = Self::MsgChainKey::from([0; 32]);
 		msg_chain_key.copy_from_slice(&hkdf_out[32..64]);
 		let mut header_key = Self::HeaderKey::from([0; 32]);
 		header_key.copy_from_slice(&hkdf_out[64..]);
 
-		(root_chain_key, msg_chain_key, header_key)
+		(root_key, msg_chain_key, header_key)
 	}
 
 	fn kdf_msg_chain(

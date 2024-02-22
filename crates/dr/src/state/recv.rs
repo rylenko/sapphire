@@ -102,7 +102,7 @@ where
 		&mut self,
 		until: super::num::Num,
 	) -> Result<(), super::error::SkipMsgKeys> {
-		use {super::chain::Chain as _, alloc::borrow::ToOwned as _};
+		use {super::msg_chain::MsgChain as _, alloc::borrow::ToOwned as _};
 
 		// Validate `until`
 		if self.next_msg_num + self.skipped_msg_keys_max_cnt < until {
@@ -128,7 +128,7 @@ where
 	}
 }
 
-impl<P> super::chain::Chain<P> for Recv<P>
+impl<P> super::msg_chain::MsgChain<P> for Recv<P>
 where
 	P: crate::crypto::Provider,
 {
@@ -239,7 +239,10 @@ mod tests {
 
 	#[test]
 	fn test_skip_msg_keys_and_pop_skipped_msg_key() {
-		use {super::super::chain::Chain as _, crate::crypto::Provider as _};
+		use {
+			super::super::msg_chain::MsgChain as _,
+			crate::crypto::Provider as _,
+		};
 
 		// Create chain and try skip too much
 		let mut chain = create_chain();
@@ -299,7 +302,7 @@ mod tests {
 
 	#[test]
 	fn test_upgrade_and_kdf() {
-		use super::super::chain::Chain as _;
+		use super::super::msg_chain::MsgChain as _;
 
 		// Create chain
 		let mut chain = create_chain();
@@ -341,7 +344,7 @@ mod tests {
 		key: [u8; 32],
 		header_key: [u8; 32],
 	) {
-		use super::super::chain::Chain as _;
+		use super::super::msg_chain::MsgChain as _;
 		chain.upgrade(
 			<crate::default_crypto::Provider as crate::crypto::Provider>
 				::MsgChainKey::from(key),

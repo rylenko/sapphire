@@ -2,7 +2,7 @@
 ///
 /// They are should provide the same API for new message keys creation and
 /// upgrading after Diffie-Hellman ratchet.
-pub(super) trait Chain<P>
+pub(super) trait MsgChain<P>
 where
 	P: crate::crypto::Provider,
 {

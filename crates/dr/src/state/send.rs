@@ -55,7 +55,7 @@ where
 	}
 }
 
-impl<P> super::chain::Chain<P> for Send<P>
+impl<P> super::msg_chain::MsgChain<P> for Send<P>
 where
 	P: crate::crypto::Provider,
 {
@@ -95,7 +95,7 @@ where
 mod tests {
 	#[test]
 	fn test_kdf_error() {
-		use super::super::chain::Chain as _;
+		use super::super::msg_chain::MsgChain as _;
 
 		let mut chain = super::Send::<crate::default_crypto::Provider>::new(
 			None,
@@ -109,7 +109,7 @@ mod tests {
 
 	#[test]
 	fn test_kdf_and_upgrade_ok() -> Result<(), super::super::error::SendKdf> {
-		use super::super::chain::Chain as _;
+		use super::super::msg_chain::MsgChain as _;
 
 		// Create chain
 		let mut chain = super::Send::<crate::default_crypto::Provider>::new(

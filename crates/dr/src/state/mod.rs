@@ -2,9 +2,9 @@
 Home of state for Alice and Bob, chains and header.
 */
 
-mod chain;
 mod error;
 mod header;
+mod msg_chain;
 mod num;
 mod recv;
 mod root;
@@ -23,13 +23,13 @@ pub struct State<P: crate::crypto::Provider> {
 	remote_public_key: Option<<P::KeyPair as crate::crypto::KeyPair>::Public>,
 
 	/// Receiving chain.
-	recv_chain: recv::Recv<P>,
+	recv: recv::Recv<P>,
 
 	/// Root chain.
-	root_chain: root::Root<P>,
+	root: root::Root<P>,
 
 	/// Sending chain.
-	send_chain: send::Send<P>,
+	send: send::Send<P>,
 }
 
 impl<P> State<P>
@@ -40,9 +40,9 @@ where
 	#[must_use]
 	pub fn new_alice(
 		bob_public_key: <P::KeyPair as crate::crypto::KeyPair>::Public,
-		shared_secret: P::RootChainKey,
-		shared_send_chain_header_key: P::HeaderKey,
-		shared_recv_chain_next_header_key: P::HeaderKey,
+		root_key: P::RootKey,
+		send_header_key: P::HeaderKey,
+		recv_next_header_key: P::HeaderKey,
 		skipped_msg_keys_max_cnt: num::Num,
 	) -> Self {
 		use crate::crypto::KeyPair as _;
@@ -51,23 +51,23 @@ where
 		let local_key_pair = P::KeyPair::rand();
 
 		// Create root chain
-		let mut root_chain = root::Root::new(shared_secret);
+		let mut root = root::Root::new(root_key);
 		// Use KDF in root chain for sending chain
-		let (send_chain_key, send_chain_next_header_key) =
-			root_chain.kdf(&P::dh(&local_key_pair, &bob_public_key));
+		let (send_key, send_next_header_key) =
+			root.kdf(&P::dh(&local_key_pair, &bob_public_key));
 
 		Self {
 			local_key_pair,
 			remote_public_key: Some(bob_public_key),
-			recv_chain: recv::Recv::new(
-				shared_recv_chain_next_header_key,
+			recv: recv::Recv::new(
+				recv_next_header_key,
 				skipped_msg_keys_max_cnt,
 			),
-			root_chain,
-			send_chain: send::Send::new(
-				Some(send_chain_key),
-				Some(shared_send_chain_header_key),
-				send_chain_next_header_key,
+			root,
+			send: send::Send::new(
+				Some(send_key),
+				Some(send_header_key),
+				send_next_header_key,
 			),
 		}
 	}
@@ -77,24 +77,20 @@ where
 	#[must_use]
 	pub fn new_bob(
 		key_pair: P::KeyPair,
-		shared_secret: P::RootChainKey,
-		shared_send_chain_next_header_key: P::HeaderKey,
-		shared_recv_chain_next_header_key: P::HeaderKey,
+		root_key: P::RootKey,
+		send_next_header_key: P::HeaderKey,
+		recv_next_header_key: P::HeaderKey,
 		skipped_msg_keys_max_cnt: num::Num,
 	) -> Self {
 		Self {
 			local_key_pair: key_pair,
 			remote_public_key: None,
-			recv_chain: recv::Recv::new(
-				shared_recv_chain_next_header_key,
+			recv: recv::Recv::new(
+				recv_next_header_key,
 				skipped_msg_keys_max_cnt,
 			),
-			root_chain: root::Root::new(shared_secret),
-			send_chain: send::Send::new(
-				None,
-				None,
-				shared_send_chain_next_header_key,
-			),
+			root: root::Root::new(root_key),
+			send: send::Send::new(None, None, send_next_header_key),
 		}
 	}
 
@@ -112,11 +108,11 @@ where
 		cipher: &[u8],
 		auth: &[u8],
 	) -> Result<alloc::vec::Vec<u8>, error::Decrypt> {
-		use chain::Chain as _;
+		use msg_chain::MsgChain as _;
 
 		// Trying to check whether the message was skipped
 		if let Some(msg_key) =
-			self.recv_chain.pop_skipped_msg_key(encrypted_header)?
+			self.recv.pop_skipped_msg_key(encrypted_header)?
 		{
 			let plain =
 				P::decrypt(&msg_key, cipher, &[auth, encrypted_header])
@@ -125,24 +121,24 @@ where
 		}
 
 		// Trying to decrypt the header with the receiving chain
-		let (header, dh_ratchet_needed) =
-			self.recv_chain.decrypt_header(encrypted_header)?;
-		if dh_ratchet_needed {
+		let (header, need_dh_ratchet) =
+			self.recv.decrypt_header(encrypted_header)?;
+		if need_dh_ratchet {
 			// Skip current chain message keys and upgrade chains using DH
 			// ratchet
-			self.recv_chain
-				.skip_msg_keys(header.prev_send_chain_msgs_cnt())
+			self.recv
+				.skip_msg_keys(header.prev_send_msgs_cnt())
 				.map_err(error::Decrypt::SkipOldChainMsgKeys)?;
 			self.dh_ratchet(header.public_key().clone());
 		}
 
 		// Skip message keys to get current key
-		self.recv_chain
+		self.recv
 			.skip_msg_keys(header.msg_num())
 			.map_err(error::Decrypt::SkipCurrChainMsgKeys)?;
 
 		// Get key and decrypt
-		let (msg_key, _header_key) = self.recv_chain.kdf()?;
+		let (msg_key, _header_key) = self.recv.kdf()?;
 		let plain = P::decrypt(&msg_key, cipher, &[auth, encrypted_header])
 			.map_err(|e| error::Decrypt::NewMsg(e.into()))?;
 		Ok(plain)
@@ -163,21 +159,21 @@ where
 	) -> Result<(alloc::vec::Vec<u8>, alloc::vec::Vec<u8>), error::Encrypt> {
 		use {
 			crate::crypto::KeyPair as _, alloc::borrow::ToOwned as _,
-			chain::Chain as _,
+			msg_chain::MsgChain as _,
 		};
 
 		// Create header and encode it to bytes
 		let header_bytes = bincode::encode_to_vec(
 			header::Header::<P>::new(
 				self.local_key_pair.public().to_owned(),
-				self.send_chain.next_msg_num(),
-				self.send_chain.prev_msgs_cnt(),
+				self.send.next_msg_num(),
+				self.send.prev_msgs_cnt(),
 			),
 			bincode::config::standard(),
 		)?;
 
 		// Move sending chain forward
-		let (msg_key, header_key) = self.send_chain.kdf()?;
+		let (msg_key, header_key) = self.send.kdf()?;
 
 		// Encrypt header's bytes
 		let encrypted_header_bytes =
@@ -198,7 +194,7 @@ where
 		&mut self,
 		new_remote_public_key: <P::KeyPair as crate::crypto::KeyPair>::Public,
 	) {
-		use {crate::crypto::KeyPair as _, chain::Chain as _};
+		use {crate::crypto::KeyPair as _, msg_chain::MsgChain as _};
 
 		// Extract remote public key from the header
 		let remote_public_key_ref = {
@@ -208,18 +204,16 @@ where
 		};
 
 		// Use KDF in root chain for receiving chain
-		let (chain_key, next_header_key) = self
-			.root_chain
-			.kdf(&P::dh(&self.local_key_pair, remote_public_key_ref));
-		self.recv_chain.upgrade(chain_key, next_header_key);
+		let (chain_key, next_header_key) =
+			self.root.kdf(&P::dh(&self.local_key_pair, remote_public_key_ref));
+		self.recv.upgrade(chain_key, next_header_key);
 
 		// Generate new key pair
 		self.local_key_pair = P::KeyPair::rand();
 
 		// Use KDF in root chain for sending chain
-		let (chain_key, next_header_key) = self
-			.root_chain
-			.kdf(&P::dh(&self.local_key_pair, remote_public_key_ref));
-		self.send_chain.upgrade(chain_key, next_header_key);
+		let (chain_key, next_header_key) =
+			self.root.kdf(&P::dh(&self.local_key_pair, remote_public_key_ref));
+		self.send.upgrade(chain_key, next_header_key);
 	}
 }

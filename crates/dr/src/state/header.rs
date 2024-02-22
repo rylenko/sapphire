@@ -11,7 +11,7 @@ where
 	msg_num: super::num::Num,
 
 	/// Messages count in previous sending chain.
-	prev_send_chain_msgs_cnt: super::num::Num,
+	prev_send_msgs_cnt: super::num::Num,
 }
 
 impl<P> Header<P>
@@ -23,9 +23,9 @@ where
 	pub(super) const fn new(
 		public_key: <P::KeyPair as crate::crypto::KeyPair>::Public,
 		msg_num: super::num::Num,
-		prev_send_chain_msgs_cnt: super::num::Num,
+		prev_send_msgs_cnt: super::num::Num,
 	) -> Self {
-		Self { public_key, msg_num, prev_send_chain_msgs_cnt }
+		Self { public_key, msg_num, prev_send_msgs_cnt }
 	}
 
 	#[inline]
@@ -36,8 +36,8 @@ where
 
 	#[inline]
 	#[must_use]
-	pub(super) const fn prev_send_chain_msgs_cnt(&self) -> super::num::Num {
-		self.prev_send_chain_msgs_cnt
+	pub(super) const fn prev_send_msgs_cnt(&self) -> super::num::Num {
+		self.prev_send_msgs_cnt
 	}
 
 	#[inline]
@@ -59,7 +59,7 @@ where
 	{
 		bincode::Encode::encode(&self.public_key, e)?;
 		bincode::Encode::encode(&self.msg_num, e)?;
-		bincode::Encode::encode(&self.prev_send_chain_msgs_cnt, e)
+		bincode::Encode::encode(&self.prev_send_msgs_cnt, e)
 	}
 }
 

@@ -7,7 +7,7 @@ where
 	P: crate::crypto::Provider,
 {
 	/// Is initially a shared secret. Later is the output root key of KDF.
-	key: P::RootChainKey,
+	key: P::RootKey,
 }
 
 impl<P> Root<P>
@@ -16,7 +16,7 @@ where
 {
 	#[inline]
 	#[must_use]
-	pub(in crate::state) const fn new(key: P::RootChainKey) -> Self {
+	pub(in crate::state) const fn new(key: P::RootKey) -> Self {
 		Self { key }
 	}
 
@@ -29,10 +29,10 @@ where
 		&mut self,
 		input: &P::SharedSecret,
 	) -> (P::MsgChainKey, P::HeaderKey) {
-		let (root_key, chain_key, header_key) =
-			P::kdf_root_chain(&self.key, input);
+		let (root_key, msg_chain_key, header_key) =
+			P::kdf_root(&self.key, input);
 		self.key = root_key;
-		(chain_key, header_key)
+		(msg_chain_key, header_key)
 	}
 }
 
@@ -45,7 +45,7 @@ mod tests {
 		// Create chain
 		let mut chain = super::Root::<crate::default_crypto::Provider>::new(
 			<crate::default_crypto::Provider as crate::crypto::Provider>
-				::RootChainKey::from([1; 32]),
+				::RootKey::from([1; 32]),
 		);
 
 		// Create local and remote keys
