@@ -8,6 +8,7 @@ Double ratchet algorithm implementation for Sapphire.
 
 extern crate alloc;
 
+mod code;
 pub mod crypto;
 #[cfg(any(test, feature = "default-crypto"))]
 pub mod default_crypto;

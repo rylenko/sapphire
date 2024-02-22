@@ -65,15 +65,13 @@ where
 		encrypted_header: &[u8],
 	) -> Result<(super::header::Header<P>, bool), super::error::DecryptHeader>
 	{
-		let decode = |bytes| {
-			bincode::decode_from_slice(bytes, bincode::config::standard())
-		};
+		use crate::code::Decode as _;
 
 		// Try to decrypt with current header key
 		if let Some(ref header_key) = self.header_key {
 			if let Ok(bytes) = P::decrypt_header(header_key, encrypted_header)
 			{
-				return Ok((decode(&bytes)?.0, false));
+				return Ok((super::header::Header::decode(&bytes)?.0, false));
 			}
 		}
 
@@ -81,7 +79,7 @@ where
 		if let Ok(bytes) =
 			P::decrypt_header(&self.next_header_key, encrypted_header)
 		{
-			return Ok((decode(&bytes)?.0, true));
+			return Ok((super::header::Header::decode(&bytes)?.0, true));
 		}
 
 		Err(super::error::DecryptHeader::KeysNotFit)
@@ -177,36 +175,26 @@ mod tests {
 
 	fn create_header(
 		msg_num: super::super::num::Num,
-	) -> (
-		super::super::header::Header<crate::default_crypto::Provider>,
-		alloc::vec::Vec<u8>,
-	) {
-		// Create header
-		let header = super::super::header::Header::<crate::default_crypto::Provider>
+	) -> super::super::header::Header<crate::default_crypto::Provider> {
+		super::super::header::Header::<crate::default_crypto::Provider>
 		::new(
 			<crate::default_crypto::KeyPair as crate::crypto::KeyPair>
 				::Public::from([1; 32]),
 			msg_num,
 			100,
-		);
-
-		// Encode header
-		let header_bytes =
-			bincode::encode_to_vec(&header, bincode::config::standard())
-				.unwrap();
-
-		(header, header_bytes)
+		)
 	}
 
 	#[test]
 	fn test_decrypt_header() {
-		use crate::crypto::Provider as _;
+		use crate::{code::Encode as _, crypto::Provider as _};
 
 		// Create and upgrade chain
 		let mut chain = create_chain();
 		upgrade(&mut chain, [1; 32], [2; 32]);
 
-		let (header, header_bytes) = create_header(1);
+		let header = create_header(1);
+		let header_bytes = header.encode();
 
 		// Encrypt header bytes with current header key
 		let encrypted_header =
@@ -241,7 +229,7 @@ mod tests {
 	fn test_skip_msg_keys_and_pop_skipped_msg_key() {
 		use {
 			super::super::msg_chain::MsgChain as _,
-			crate::crypto::Provider as _,
+			crate::{code::Encode as _, crypto::Provider as _},
 		};
 
 		// Create chain and try skip too much
@@ -256,8 +244,8 @@ mod tests {
 		assert_eq!(chain.next_msg_num, 2);
 
 		// Create headers
-		let (_header_1, header_bytes_1) = create_header(0);
-		let (_header_2, header_bytes_2) = create_header(1);
+		let header_bytes_1 = create_header(0).encode();
+		let header_bytes_2 = create_header(1).encode();
 
 		// Create copy of chain
 		let mut chain_clone = create_chain();

@@ -157,19 +157,18 @@ where
 		auth: &[u8],
 	) -> Result<(alloc::vec::Vec<u8>, alloc::vec::Vec<u8>), error::Encrypt> {
 		use {
-			crate::crypto::KeyPair as _, alloc::borrow::ToOwned as _,
+			crate::{code::Encode as _, crypto::KeyPair as _},
+			alloc::borrow::ToOwned as _,
 			msg_chain::MsgChain as _,
 		};
 
 		// Create header and encode it to bytes
-		let header_bytes = bincode::encode_to_vec(
-			header::Header::<P>::new(
-				self.local_key_pair.public().to_owned(),
-				self.send.next_msg_num(),
-				self.send.prev_msgs_cnt(),
-			),
-			bincode::config::standard(),
-		)?;
+		let header_bytes = header::Header::<P>::new(
+			self.local_key_pair.public().to_owned(),
+			self.send.next_msg_num(),
+			self.send.prev_msgs_cnt(),
+		)
+		.encode();
 
 		// Move sending chain forward
 		let (msg_key, header_key) = self.send.kdf()?;

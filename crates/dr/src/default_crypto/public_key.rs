@@ -1,4 +1,4 @@
-/// Wrapper for [`PublicKey`] with bincode traits implementation.
+/// Wrapper for [`PublicKey`].
 ///
 /// [`PublicKey`]: x25519_dalek::PublicKey
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -31,23 +31,25 @@ impl core::ops::Deref for PublicKey {
 	}
 }
 
-impl bincode::Encode for PublicKey {
+impl crate::code::Encode for PublicKey {
 	#[inline]
-	fn encode<E>(&self, e: &mut E) -> Result<(), bincode::error::EncodeError>
-	where
-		E: bincode::enc::Encoder,
-	{
-		bincode::Encode::encode(self.0.as_bytes(), e)
+	#[must_use]
+	fn encode(&self) -> alloc::vec::Vec<u8> {
+		self.0.as_ref().to_vec()
 	}
 }
 
-impl bincode::Decode for PublicKey {
-	#[inline]
-	fn decode<D>(d: &mut D) -> Result<Self, bincode::error::DecodeError>
-	where
-		D: bincode::de::Decoder,
-	{
-		Ok(From::<[u8; 32]>::from(bincode::Decode::decode(d)?))
+impl crate::code::Decode for PublicKey {
+	type Error = super::error::PublicKeyDecode;
+
+	fn decode(key: &[u8]) -> Result<(Self, usize), Self::Error> {
+		if key.len() < 32 {
+			Err(Self::Error::InvalidLen)
+		} else {
+			let mut inner = [0; 32];
+			inner.copy_from_slice(&key[..32]);
+			Ok((Self::from(inner), 32))
+		}
 	}
 }
 
@@ -55,18 +57,11 @@ impl bincode::Decode for PublicKey {
 mod tests {
 	#[test]
 	fn test_encode_and_decode() {
+		use crate::code::{Decode as _, Encode as _};
+
 		let key = super::PublicKey::from([1; 32]);
-
-		// Encode
-		let bytes =
-			bincode::encode_to_vec(key, bincode::config::standard()).unwrap();
+		let bytes = key.encode();
 		assert_eq!(bytes, [1; 32]);
-
-		// Decode
-		let key_copy =
-			bincode::decode_from_slice(&bytes, bincode::config::standard())
-				.unwrap()
-				.0;
-		assert_eq!(key, key_copy);
+		assert_eq!(super::PublicKey::decode(&bytes).unwrap(), (key, 32));
 	}
 }

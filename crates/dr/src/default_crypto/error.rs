@@ -148,3 +148,29 @@ impl core::fmt::Display for EncryptHeader {
 		}
 	}
 }
+
+/// Header encryption error.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum PublicKeyDecode {
+	InvalidLen,
+}
+
+impl core::error::Error for PublicKeyDecode {
+	#[inline]
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			Self::InvalidLen => None,
+		}
+	}
+}
+
+impl core::fmt::Display for PublicKeyDecode {
+	#[inline]
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::InvalidLen => write!(f, "Invalid slice length."),
+		}
+	}
+}

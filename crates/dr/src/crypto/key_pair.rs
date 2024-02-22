@@ -8,8 +8,8 @@ pub trait KeyPair: Clone + Eq + PartialEq + core::fmt::Debug {
 		+ Eq
 		+ PartialEq
 		+ core::fmt::Debug
-		+ bincode::Decode
-		+ bincode::Encode;
+		+ crate::code::Decode
+		+ crate::code::Encode;
 
 	/// Generates a new random key pair.
 	#[must_use]

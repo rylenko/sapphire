@@ -58,7 +58,7 @@ where
 		&mut self,
 		encrypted_header: &[u8],
 	) -> Result<Option<P::MsgKey>, super::error::PopSkippedMsgKey> {
-		use alloc::borrow::ToOwned as _;
+		use {crate::code::Decode as _, alloc::borrow::ToOwned as _};
 
 		let mut ret = None;
 		let mut empty_header_key = None;
@@ -72,15 +72,12 @@ where
 			};
 
 			// Decode decrypted header bytes
-			let header: super::header::Header<P> = bincode::decode_from_slice(
-				&bytes,
-				bincode::config::standard(),
-			)?
-			.0;
+			let msg_num =
+				super::header::Header::<P>::decode(&bytes)?.0.msg_num();
 
 			// Try to remove message number to get message key or break loop
 			// because of no point in checking other keys
-			let Some(msg_key) = values.remove(&header.msg_num()) else {
+			let Some(msg_key) = values.remove(&msg_num) else {
 				break;
 			};
 

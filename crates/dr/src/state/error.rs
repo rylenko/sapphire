@@ -79,14 +79,14 @@ impl core::fmt::Display for Decrypt {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum DecryptHeader {
-	Decode(bincode::error::DecodeError),
+	Decode(HeaderDecode),
 	KeysNotFit,
 }
 
-impl From<bincode::error::DecodeError> for DecryptHeader {
+impl From<HeaderDecode> for DecryptHeader {
 	#[inline]
 	#[must_use]
-	fn from(e: bincode::error::DecodeError) -> Self {
+	fn from(e: HeaderDecode) -> Self {
 		Self::Decode(e)
 	}
 }
@@ -96,7 +96,6 @@ impl core::error::Error for DecryptHeader {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			// TODO: wait `bincode`'s implementation of `core::error::Error`
 			Self::Decode(..) | Self::KeysNotFit => None,
 		}
 	}
@@ -119,17 +118,8 @@ impl core::fmt::Display for DecryptHeader {
 #[non_exhaustive]
 pub enum Encrypt {
 	SendChainKdf(SendKdf),
-	EncodeHeader(bincode::error::EncodeError),
 	HeaderBytes(alloc::boxed::Box<dyn core::error::Error>),
 	Plain(alloc::boxed::Box<dyn core::error::Error>),
-}
-
-impl From<bincode::error::EncodeError> for Encrypt {
-	#[inline]
-	#[must_use]
-	fn from(e: bincode::error::EncodeError) -> Self {
-		Self::EncodeHeader(e)
-	}
 }
 
 impl From<SendKdf> for Encrypt {
@@ -145,8 +135,6 @@ impl core::error::Error for Encrypt {
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
 			Self::SendChainKdf(e) => Some(e),
-			// TODO: wait `bincode`'s implementation of `core::error::Error`
-			Self::EncodeHeader(..) => None,
 			Self::HeaderBytes(e) | Self::Plain(e) => Some(e.as_ref()),
 		}
 	}
@@ -157,11 +145,6 @@ impl core::fmt::Display for Encrypt {
 		match self {
 			Self::SendChainKdf(..) => {
 				write!(f, "Failed to kdf sending chain.")
-			}
-			// TODO: Remove `{}` if `bincode::error::EncodeError` is valid
-			// source
-			Self::EncodeHeader(e) => {
-				write!(f, "Failed to encode the header: {e}.")
 			}
 			Self::HeaderBytes(..) => {
 				write!(f, "Failed to encrypt the header bytes.")
@@ -175,15 +158,85 @@ impl core::fmt::Display for Encrypt {
 
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum PopSkippedMsgKey {
-	DecodeHeader(bincode::error::DecodeError),
+pub enum HeaderDecode {
+	InvalidLen,
+	MsgNum(NumDecode),
+	PrevSendMsgsCnt(NumDecode),
+	PublicKey(alloc::boxed::Box<dyn core::error::Error>),
 }
 
-impl From<bincode::error::DecodeError> for PopSkippedMsgKey {
+impl core::error::Error for HeaderDecode {
 	#[inline]
 	#[must_use]
-	fn from(e: bincode::error::DecodeError) -> Self {
-		Self::DecodeHeader(e)
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			Self::InvalidLen => None,
+			Self::MsgNum(ref e) | Self::PrevSendMsgsCnt(ref e) => Some(e),
+			Self::PublicKey(e) => Some(e.as_ref()),
+		}
+	}
+}
+
+impl core::fmt::Display for HeaderDecode {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::InvalidLen => {
+				write!(f, "Invalid slice length.")
+			}
+			Self::MsgNum(..) => {
+				write!(f, "Failed to decode message number.")
+			}
+			Self::PrevSendMsgsCnt(..) => {
+				write!(
+					f,
+					"Failed to decode previous sending chain messages count."
+				)
+			}
+			Self::PublicKey(..) => {
+				write!(f, "Failed to decode a public key.")
+			}
+		}
+	}
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum NumDecode {
+	InvalidLen,
+}
+
+impl core::error::Error for NumDecode {
+	#[inline]
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			Self::InvalidLen => None,
+		}
+	}
+}
+
+impl core::fmt::Display for NumDecode {
+	#[inline]
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::InvalidLen => {
+				write!(f, "Invalid slice length.")
+			}
+		}
+	}
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum PopSkippedMsgKey {
+	HeaderDecode(HeaderDecode),
+}
+
+impl From<HeaderDecode> for PopSkippedMsgKey {
+	#[inline]
+	#[must_use]
+	fn from(e: HeaderDecode) -> Self {
+		Self::HeaderDecode(e)
 	}
 }
 
@@ -192,8 +245,7 @@ impl core::error::Error for PopSkippedMsgKey {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			// TODO: `bincode`'s wait implementation of `core::error::Error`
-			Self::DecodeHeader(..) => None,
+			Self::HeaderDecode(..) => None,
 		}
 	}
 }
@@ -201,9 +253,7 @@ impl core::error::Error for PopSkippedMsgKey {
 impl core::fmt::Display for PopSkippedMsgKey {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			// TODO: Remove `{}` if `bincode::error::DecodeError` is valid
-			// source
-			Self::DecodeHeader(e) => {
+			Self::HeaderDecode(e) => {
 				write!(f, "Failed to decode the header: {e}.")
 			}
 		}

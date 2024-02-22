@@ -1,7 +1,3 @@
-[dependencies.bincode]
-features = ["alloc"]
-version = "2.0.0-rc.3"
-
 [dependencies.chacha20poly1305]
 optional = true
 version = "0.10.1"

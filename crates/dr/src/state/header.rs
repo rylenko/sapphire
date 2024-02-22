@@ -49,71 +49,79 @@ where
 	}
 }
 
-impl<P> bincode::Encode for Header<P>
+impl<P> crate::code::Encode for Header<P>
 where
 	P: crate::crypto::Provider,
 {
-	fn encode<E>(&self, e: &mut E) -> Result<(), bincode::error::EncodeError>
-	where
-		E: bincode::enc::Encoder,
-	{
-		bincode::Encode::encode(&self.public_key, e)?;
-		bincode::Encode::encode(&self.msg_num, e)?;
-		bincode::Encode::encode(&self.prev_send_msgs_cnt, e)
+	fn encode(&self) -> alloc::vec::Vec<u8> {
+		// TODO: set right capacity?
+		let mut ret = self.public_key.encode();
+		ret.extend(self.msg_num.to_le_bytes());
+		ret.extend(self.prev_send_msgs_cnt.to_le_bytes());
+		ret
 	}
 }
 
-impl<P> bincode::Decode for Header<P>
+impl<P> crate::code::Decode for Header<P>
 where
 	P: crate::crypto::Provider,
 {
-	fn decode<D>(d: &mut D) -> Result<Self, bincode::error::DecodeError>
-	where
-		D: bincode::de::Decoder,
-	{
-		Ok(Self::new(
-			bincode::Decode::decode(d)?,
-			bincode::Decode::decode(d)?,
-			bincode::Decode::decode(d)?,
+	type Error = super::error::HeaderDecode;
+
+	fn decode(slice: &[u8]) -> Result<(Self, usize), Self::Error> {
+		// Decode data
+		let (public_key, public_key_size) =
+			<P::KeyPair as crate::crypto::KeyPair>::Public::decode(slice)
+				.map_err(|e| Self::Error::PublicKey(e.into()))?;
+		let (msg_num, msg_num_size) =
+			super::num::Num::decode(&slice[public_key_size..])
+				.map_err(Self::Error::MsgNum)?;
+		let (prev_send_msgs_cnt, prev_send_msgs_cnt_size) =
+			super::num::Num::decode(&slice[public_key_size + msg_num_size..])
+				.map_err(Self::Error::PrevSendMsgsCnt)?;
+
+		// Compute length and return
+		Ok((
+			Self::new(public_key, msg_num, prev_send_msgs_cnt),
+			public_key_size + msg_num_size + prev_send_msgs_cnt_size,
 		))
 	}
 }
 
 #[cfg(test)]
 mod tests {
+	const MSG_NUM: super::super::num::Num = 55;
+	const PREV_SEND_MSGS_CNT: super::super::num::Num = 1111;
+
 	#[test]
 	fn test_encode_and_decode() {
-		use crate::crypto::KeyPair as _;
+		use crate::{
+			code::{Decode as _, Encode as _},
+			crypto::KeyPair as _,
+		};
 
 		// Create valid test data
 		let valid_key_pair = crate::default_crypto::KeyPair::rand();
 		let valid_header =
 			super::Header::<crate::default_crypto::Provider>::new(
 				*valid_key_pair.public(),
-				55,
-				1111,
+				MSG_NUM,
+				PREV_SEND_MSGS_CNT,
 			);
-		let valid_header_bytes: alloc::vec::Vec<u8> =
-			[valid_key_pair.public().as_ref(), &[55], &[251, 87, 4]].concat();
+		// TODO: untie [0, 0, 4, 87] from u32
+		let valid_header_bytes: alloc::vec::Vec<u8> = [
+			valid_key_pair.public().as_ref(),
+			&MSG_NUM.to_le_bytes(),
+			&PREV_SEND_MSGS_CNT.to_le_bytes(),
+		]
+		.concat();
 
 		// Test encoding.
-		//
-		// TODO: Wait for `bincode`'s `core::error::Error` impl to return
-		// `Result`
-		let bytes =
-			bincode::encode_to_vec(&valid_header, bincode::config::standard())
-				.unwrap();
+		let bytes = valid_header.encode();
 		assert_eq!(bytes, valid_header_bytes);
-		assert!(bytes.len() < core::mem::size_of_val(&valid_header));
+		assert!(bytes.len() <= core::mem::size_of_val(&valid_header));
 
 		// Test decoding.
-		//
-		// TODO: Wait for `bincode`'s `core::error::Error` impl to return
-		// `Result`
-		let header: super::Header<crate::default_crypto::Provider> =
-			bincode::decode_from_slice(&bytes, bincode::config::standard())
-				.unwrap()
-				.0;
-		assert_eq!(header, valid_header);
+		assert_eq!(super::Header::decode(&bytes).unwrap().0, valid_header);
 	}
 }
