@@ -1,35 +1,35 @@
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Decrypt {
-	Header(super::chain::error::DecryptHeader),
+	Header(DecryptHeader),
 	NewMsg(alloc::boxed::Box<dyn core::error::Error>),
-	PopSkippedMsgKey(super::chain::error::PopSkippedMsgKey),
-	RecvChainKdf(super::chain::error::RecvKdf),
-	SkipCurrChainMsgKeys(super::chain::error::SkipMsgKeys),
-	SkipOldChainMsgKeys(super::chain::error::SkipMsgKeys),
+	PopSkippedMsgKey(PopSkippedMsgKey),
+	RecvChainKdf(RecvKdf),
+	SkipCurrChainMsgKeys(SkipMsgKeys),
+	SkipOldChainMsgKeys(SkipMsgKeys),
 	SkippedMsg(alloc::boxed::Box<dyn core::error::Error>),
 }
 
-impl From<super::chain::error::DecryptHeader> for Decrypt {
+impl From<DecryptHeader> for Decrypt {
 	#[inline]
 	#[must_use]
-	fn from(e: super::chain::error::DecryptHeader) -> Self {
+	fn from(e: DecryptHeader) -> Self {
 		Self::Header(e)
 	}
 }
 
-impl From<super::chain::error::PopSkippedMsgKey> for Decrypt {
+impl From<PopSkippedMsgKey> for Decrypt {
 	#[inline]
 	#[must_use]
-	fn from(e: super::chain::error::PopSkippedMsgKey) -> Self {
+	fn from(e: PopSkippedMsgKey) -> Self {
 		Self::PopSkippedMsgKey(e)
 	}
 }
 
-impl From<super::chain::error::RecvKdf> for Decrypt {
+impl From<RecvKdf> for Decrypt {
 	#[inline]
 	#[must_use]
-	fn from(e: super::chain::error::RecvKdf) -> Self {
+	fn from(e: RecvKdf) -> Self {
 		Self::RecvChainKdf(e)
 	}
 }
@@ -78,8 +78,47 @@ impl core::fmt::Display for Decrypt {
 
 #[derive(Debug)]
 #[non_exhaustive]
+pub enum DecryptHeader {
+	Decode(bincode::error::DecodeError),
+	KeysNotFit,
+}
+
+impl From<bincode::error::DecodeError> for DecryptHeader {
+	#[inline]
+	#[must_use]
+	fn from(e: bincode::error::DecodeError) -> Self {
+		Self::Decode(e)
+	}
+}
+
+impl core::error::Error for DecryptHeader {
+	#[inline]
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			// TODO: wait `bincode`'s implementation of `core::error::Error`
+			Self::Decode(_) | Self::KeysNotFit => None,
+		}
+	}
+}
+
+impl core::fmt::Display for DecryptHeader {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::Decode(e) => {
+				write!(f, "Failed to decode the header: {e}.")
+			}
+			Self::KeysNotFit => {
+				write!(f, "Keys do not fit..")
+			}
+		}
+	}
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
 pub enum Encrypt {
-	SendChainKdf(super::chain::error::SendKdf),
+	SendChainKdf(SendKdf),
 	EncodeHeader(bincode::error::EncodeError),
 	HeaderBytes(alloc::boxed::Box<dyn core::error::Error>),
 	Plain(alloc::boxed::Box<dyn core::error::Error>),
@@ -93,10 +132,10 @@ impl From<bincode::error::EncodeError> for Encrypt {
 	}
 }
 
-impl From<super::chain::error::SendKdf> for Encrypt {
+impl From<SendKdf> for Encrypt {
 	#[inline]
 	#[must_use]
-	fn from(e: super::chain::error::SendKdf) -> Self {
+	fn from(e: SendKdf) -> Self {
 		Self::SendChainKdf(e)
 	}
 }
@@ -130,6 +169,135 @@ impl core::fmt::Display for Encrypt {
 			Self::Plain(_) => {
 				write!(f, "Failed to encrypt a plain text.")
 			}
+		}
+	}
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum PopSkippedMsgKey {
+	DecodeHeader(bincode::error::DecodeError),
+}
+
+impl From<bincode::error::DecodeError> for PopSkippedMsgKey {
+	#[inline]
+	#[must_use]
+	fn from(e: bincode::error::DecodeError) -> Self {
+		Self::DecodeHeader(e)
+	}
+}
+
+impl core::error::Error for PopSkippedMsgKey {
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			// TODO: `bincode`'s wait implementation of `core::error::Error`
+			Self::DecodeHeader(_) => None,
+		}
+	}
+}
+
+impl core::fmt::Display for PopSkippedMsgKey {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			// TODO: Remove `{}` if `bincode::error::DecodeError` is valid
+			// source
+			Self::DecodeHeader(e) => {
+				write!(f, "Failed to decode the header: {e}.")
+			}
+		}
+	}
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum RecvKdf {
+	NoHeaderKey,
+	NoKey,
+}
+
+impl core::error::Error for RecvKdf {
+	#[inline]
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			Self::NoHeaderKey | Self::NoKey => None,
+		}
+	}
+}
+
+impl core::fmt::Display for RecvKdf {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::NoHeaderKey => {
+				write!(f, "There is no header key to forward chain.")
+			}
+			Self::NoKey => write!(f, "There is no base key to forward chain."),
+		}
+	}
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum SendKdf {
+	NoHeaderKey,
+	NoKey,
+}
+
+impl core::error::Error for SendKdf {
+	#[inline]
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			Self::NoHeaderKey | Self::NoKey => None,
+		}
+	}
+}
+
+impl core::fmt::Display for SendKdf {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::NoHeaderKey => {
+				write!(f, "There is no header key to forward chain.")
+			}
+			Self::NoKey => write!(f, "There is no base key to forward chain."),
+		}
+	}
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum SkipMsgKeys {
+	TooMuch,
+	Kdf(RecvKdf),
+}
+
+impl From<RecvKdf> for SkipMsgKeys {
+	#[inline]
+	#[must_use]
+	fn from(e: RecvKdf) -> Self {
+		Self::Kdf(e)
+	}
+}
+
+impl core::error::Error for SkipMsgKeys {
+	#[inline]
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			Self::TooMuch => None,
+			Self::Kdf(ref e) => Some(e),
+		}
+	}
+}
+
+impl core::fmt::Display for SkipMsgKeys {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::TooMuch => {
+				write!(f, "Too much message keys to skip.")
+			}
+			Self::Kdf(_) => write!(f, "Failed to push forward receive chain."),
 		}
 	}
 }

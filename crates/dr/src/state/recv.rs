@@ -1,5 +1,7 @@
-/// Receiving chain for Alice and Bob.
-pub(in crate::state) struct Recv<P>
+/// Receiving chain of [`State`].
+///
+/// [`State`]: super::State
+pub(super) struct Recv<P>
 where
 	P: crate::crypto::Provider,
 {
@@ -30,7 +32,7 @@ where
 	/// Creates new receiving chain.
 	#[inline]
 	#[must_use]
-	pub(in crate::state) fn new(
+	pub(super) fn new(
 		next_header_key: P::HeaderKey,
 		skipped_msg_keys_max_cnt: super::num::Num,
 	) -> Self {
@@ -58,7 +60,7 @@ where
 	/// See [`DecryptHeader`].
 	///
 	/// [`DecryptHeader`]: super::error::DecryptHeader
-	pub(in crate::state) fn decrypt_header(
+	pub(super) fn decrypt_header(
 		&self,
 		encrypted_header: &[u8],
 	) -> Result<(super::header::Header<P>, bool), super::error::DecryptHeader>
@@ -89,18 +91,18 @@ where
 	///
 	/// [pop]: super::skipped_msg_keys::SkippedMsgKeys::pop
 	#[inline]
-	pub(in crate::state) fn pop_skipped_msg_key(
+	pub(super) fn pop_skipped_msg_key(
 		&mut self,
 		encrypted_header: &[u8],
 	) -> Result<Option<P::MsgKey>, super::error::PopSkippedMsgKey> {
 		self.skipped_msg_keys.pop(encrypted_header)
 	}
 
-	pub(in crate::state) fn skip_msg_keys(
+	pub(super) fn skip_msg_keys(
 		&mut self,
 		until: super::num::Num,
 	) -> Result<(), super::error::SkipMsgKeys> {
-		use {super::Chain as _, alloc::borrow::ToOwned as _};
+		use {super::chain::Chain as _, alloc::borrow::ToOwned as _};
 
 		// Validate `until`
 		if self.next_msg_num + self.skipped_msg_keys_max_cnt < until {
@@ -126,7 +128,7 @@ where
 	}
 }
 
-impl<P> super::Chain<P> for Recv<P>
+impl<P> super::chain::Chain<P> for Recv<P>
 where
 	P: crate::crypto::Provider,
 {
@@ -176,11 +178,12 @@ mod tests {
 	fn create_header(
 		msg_num: super::super::num::Num,
 	) -> (
-		super::super::Header<crate::default_crypto::Provider>,
+		super::super::header::Header<crate::default_crypto::Provider>,
 		alloc::vec::Vec<u8>,
 	) {
 		// Create header
-		let header = super::super::Header::<crate::default_crypto::Provider>::new(
+		let header = super::super::header::Header::<crate::default_crypto::Provider>
+		::new(
 			<crate::default_crypto::KeyPair as crate::crypto::KeyPair>
 				::Public::from([1; 32]),
 			msg_num,
@@ -236,7 +239,7 @@ mod tests {
 
 	#[test]
 	fn test_skip_msg_keys_and_pop_skipped_msg_key() {
-		use {super::super::Chain as _, crate::crypto::Provider as _};
+		use {super::super::chain::Chain as _, crate::crypto::Provider as _};
 
 		// Create chain and try skip too much
 		let mut chain = create_chain();
@@ -296,7 +299,7 @@ mod tests {
 
 	#[test]
 	fn test_upgrade_and_kdf() {
-		use super::super::Chain as _;
+		use super::super::chain::Chain as _;
 
 		// Create chain
 		let mut chain = create_chain();
@@ -338,7 +341,7 @@ mod tests {
 		key: [u8; 32],
 		header_key: [u8; 32],
 	) {
-		use super::super::Chain as _;
+		use super::super::chain::Chain as _;
 		chain.upgrade(
 			<crate::default_crypto::Provider as crate::crypto::Provider>
 				::MsgChainKey::from(key),

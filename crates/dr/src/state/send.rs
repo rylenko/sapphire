@@ -1,5 +1,7 @@
-/// Sending chain.
-pub(in crate::state) struct Send<P>
+/// Sending chain of [`State`].
+///
+/// [`State`]: super::State
+pub(super) struct Send<P>
 where
 	P: crate::crypto::Provider,
 {
@@ -26,7 +28,7 @@ where
 {
 	#[inline]
 	#[must_use]
-	pub(in crate::state) const fn new(
+	pub(super) const fn new(
 		key: Option<P::MsgChainKey>,
 		header_key: Option<P::HeaderKey>,
 		next_header_key: P::HeaderKey,
@@ -42,18 +44,18 @@ where
 
 	#[inline]
 	#[must_use]
-	pub(in crate::state) const fn next_msg_num(&self) -> super::num::Num {
+	pub(super) const fn next_msg_num(&self) -> super::num::Num {
 		self.next_msg_num
 	}
 
 	#[inline]
 	#[must_use]
-	pub(in crate::state) const fn prev_msgs_cnt(&self) -> super::num::Num {
+	pub(super) const fn prev_msgs_cnt(&self) -> super::num::Num {
 		self.prev_msgs_cnt
 	}
 }
 
-impl<P> super::Chain<P> for Send<P>
+impl<P> super::chain::Chain<P> for Send<P>
 where
 	P: crate::crypto::Provider,
 {
@@ -93,7 +95,7 @@ where
 mod tests {
 	#[test]
 	fn test_kdf_error() {
-		use super::super::Chain as _;
+		use super::super::chain::Chain as _;
 
 		let mut chain = super::Send::<crate::default_crypto::Provider>::new(
 			None,
@@ -107,7 +109,7 @@ mod tests {
 
 	#[test]
 	fn test_kdf_and_upgrade_ok() -> Result<(), super::super::error::SendKdf> {
-		use super::super::Chain as _;
+		use super::super::chain::Chain as _;
 
 		// Create chain
 		let mut chain = super::Send::<crate::default_crypto::Provider>::new(

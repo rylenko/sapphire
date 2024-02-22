@@ -1,6 +1,8 @@
-/// Root chain of [State](crate::state::State).
+/// Root chain of [`State`].
+///
+/// [`State`]: (super::State).
 #[repr(transparent)]
-pub(in crate::state) struct Root<P>
+pub(super) struct Root<P>
 where
 	P: crate::crypto::Provider,
 {

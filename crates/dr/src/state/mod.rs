@@ -4,8 +4,14 @@ Home of state for Alice and Bob, chains and header.
 
 mod chain;
 mod error;
+mod header;
+mod num;
+mod recv;
+mod root;
+mod send;
+mod skipped_msg_keys;
 
-pub use chain::Num;
+pub use num::Num;
 
 /// State of Alice and Bob.
 #[rustfmt::skip]
@@ -17,13 +23,13 @@ pub struct State<P: crate::crypto::Provider> {
 	remote_public_key: Option<<P::KeyPair as crate::crypto::KeyPair>::Public>,
 
 	/// Receiving chain.
-	recv_chain: chain::Recv<P>,
+	recv_chain: recv::Recv<P>,
 
 	/// Root chain.
-	root_chain: chain::Root<P>,
+	root_chain: root::Root<P>,
 
 	/// Sending chain.
-	send_chain: chain::Send<P>,
+	send_chain: send::Send<P>,
 }
 
 impl<P> State<P>
@@ -37,7 +43,7 @@ where
 		shared_secret: P::RootChainKey,
 		shared_send_chain_header_key: P::HeaderKey,
 		shared_recv_chain_next_header_key: P::HeaderKey,
-		skipped_msg_keys_max_cnt: chain::Num,
+		skipped_msg_keys_max_cnt: num::Num,
 	) -> Self {
 		use crate::crypto::KeyPair as _;
 
@@ -45,7 +51,7 @@ where
 		let local_key_pair = P::KeyPair::rand();
 
 		// Create root chain
-		let mut root_chain = chain::Root::new(shared_secret);
+		let mut root_chain = root::Root::new(shared_secret);
 		// Use KDF in root chain for sending chain
 		let (send_chain_key, send_chain_next_header_key) =
 			root_chain.kdf(&P::dh(&local_key_pair, &bob_public_key));
@@ -53,12 +59,12 @@ where
 		Self {
 			local_key_pair,
 			remote_public_key: Some(bob_public_key),
-			recv_chain: chain::Recv::new(
+			recv_chain: recv::Recv::new(
 				shared_recv_chain_next_header_key,
 				skipped_msg_keys_max_cnt,
 			),
 			root_chain,
-			send_chain: chain::Send::new(
+			send_chain: send::Send::new(
 				Some(send_chain_key),
 				Some(shared_send_chain_header_key),
 				send_chain_next_header_key,
@@ -74,17 +80,17 @@ where
 		shared_secret: P::RootChainKey,
 		shared_send_chain_next_header_key: P::HeaderKey,
 		shared_recv_chain_next_header_key: P::HeaderKey,
-		skipped_msg_keys_max_cnt: chain::Num,
+		skipped_msg_keys_max_cnt: num::Num,
 	) -> Self {
 		Self {
 			local_key_pair: key_pair,
 			remote_public_key: None,
-			recv_chain: chain::Recv::new(
+			recv_chain: recv::Recv::new(
 				shared_recv_chain_next_header_key,
 				skipped_msg_keys_max_cnt,
 			),
-			root_chain: chain::Root::new(shared_secret),
-			send_chain: chain::Send::new(
+			root_chain: root::Root::new(shared_secret),
+			send_chain: send::Send::new(
 				None,
 				None,
 				shared_send_chain_next_header_key,
@@ -162,7 +168,7 @@ where
 
 		// Create header and encode it to bytes
 		let header_bytes = bincode::encode_to_vec(
-			chain::Header::<P>::new(
+			header::Header::<P>::new(
 				self.local_key_pair.public().to_owned(),
 				self.send_chain.next_msg_num(),
 				self.send_chain.prev_msgs_cnt(),
