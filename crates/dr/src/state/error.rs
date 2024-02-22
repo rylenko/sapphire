@@ -51,25 +51,25 @@ impl core::error::Error for Decrypt {
 impl core::fmt::Display for Decrypt {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::Header(_) => {
+			Self::Header(..) => {
 				write!(f, "Failed to decrypt the header.")
 			}
-			Self::NewMsg(_) => {
+			Self::NewMsg(..) => {
 				write!(f, "Failed to decrypt the new message.")
 			}
-			Self::PopSkippedMsgKey(_) => {
+			Self::PopSkippedMsgKey(..) => {
 				write!(f, "Failed to pop a skipped message key.")
 			}
-			Self::RecvChainKdf(_) => {
+			Self::RecvChainKdf(..) => {
 				write!(f, "Failed to kdf receiving chain.")
 			}
-			Self::SkipCurrChainMsgKeys(_) => {
+			Self::SkipCurrChainMsgKeys(..) => {
 				write!(f, "Failed to skip current chain message keys.")
 			}
-			Self::SkipOldChainMsgKeys(_) => {
+			Self::SkipOldChainMsgKeys(..) => {
 				write!(f, "Failed to skip old chain message keys.")
 			}
-			Self::SkippedMsg(_) => {
+			Self::SkippedMsg(..) => {
 				write!(f, "Failed to decrypt a skipped message.")
 			}
 		}
@@ -97,7 +97,7 @@ impl core::error::Error for DecryptHeader {
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
 			// TODO: wait `bincode`'s implementation of `core::error::Error`
-			Self::Decode(_) | Self::KeysNotFit => None,
+			Self::Decode(..) | Self::KeysNotFit => None,
 		}
 	}
 }
@@ -146,7 +146,7 @@ impl core::error::Error for Encrypt {
 		match self {
 			Self::SendChainKdf(e) => Some(e),
 			// TODO: wait `bincode`'s implementation of `core::error::Error`
-			Self::EncodeHeader(_) => None,
+			Self::EncodeHeader(..) => None,
 			Self::HeaderBytes(e) | Self::Plain(e) => Some(e.as_ref()),
 		}
 	}
@@ -155,7 +155,7 @@ impl core::error::Error for Encrypt {
 impl core::fmt::Display for Encrypt {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::SendChainKdf(_) => {
+			Self::SendChainKdf(..) => {
 				write!(f, "Failed to kdf sending chain.")
 			}
 			// TODO: Remove `{}` if `bincode::error::EncodeError` is valid
@@ -163,10 +163,10 @@ impl core::fmt::Display for Encrypt {
 			Self::EncodeHeader(e) => {
 				write!(f, "Failed to encode the header: {e}.")
 			}
-			Self::HeaderBytes(_) => {
+			Self::HeaderBytes(..) => {
 				write!(f, "Failed to encrypt the header bytes.")
 			}
-			Self::Plain(_) => {
+			Self::Plain(..) => {
 				write!(f, "Failed to encrypt a plain text.")
 			}
 		}
@@ -188,11 +188,12 @@ impl From<bincode::error::DecodeError> for PopSkippedMsgKey {
 }
 
 impl core::error::Error for PopSkippedMsgKey {
+	#[inline]
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
 			// TODO: `bincode`'s wait implementation of `core::error::Error`
-			Self::DecodeHeader(_) => None,
+			Self::DecodeHeader(..) => None,
 		}
 	}
 }
@@ -297,7 +298,9 @@ impl core::fmt::Display for SkipMsgKeys {
 			Self::TooMuch => {
 				write!(f, "Too much message keys to skip.")
 			}
-			Self::Kdf(_) => write!(f, "Failed to push forward receive chain."),
+			Self::Kdf(..) => {
+				write!(f, "Failed to push forward receive chain.")
+			}
 		}
 	}
 }
