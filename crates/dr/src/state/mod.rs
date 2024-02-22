@@ -31,6 +31,7 @@ where
 	P: crate::crypto::Provider,
 {
 	/// Creates Alice's state.
+	#[must_use]
 	pub fn new_alice(
 		bob_public_key: <P::KeyPair as crate::crypto::KeyPair>::Public,
 		shared_secret: P::RootChainKey,
