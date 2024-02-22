@@ -110,18 +110,17 @@ mod tests {
 		use super::super::Chain as _;
 
 		// Create chain
-		let old_key = <crate::default_crypto::Provider as crate::crypto::Provider>
-			::MsgChainKey::from([100; 32]);
-		let old_header_key =
-			<crate::default_crypto::Provider as crate::crypto::Provider>
-				::HeaderKey::from([101; 32]);
-		let old_next_header_key =
-			<crate::default_crypto::Provider as crate::crypto::Provider>
-				::HeaderKey::from([102; 32]);
 		let mut chain = super::Send::<crate::default_crypto::Provider>::new(
-			Some(old_key.clone()),
-			Some(old_header_key.clone()),
-			old_next_header_key.clone(),
+			Some(
+				<crate::default_crypto::Provider as crate::crypto::Provider>
+					::MsgChainKey::from([1; 32]),
+			),
+			Some(
+				<crate::default_crypto::Provider as crate::crypto::Provider>
+					::HeaderKey::from([2; 32]),
+			),
+			<crate::default_crypto::Provider as crate::crypto::Provider>
+				::HeaderKey::from([3; 32]),
 		);
 
 		// Base asserts
@@ -132,24 +131,24 @@ mod tests {
 		chain.kdf()?;
 
 		// Check KDF is done
-		assert_eq!(chain.header_key, Some(old_header_key));
-		assert_ne!(chain.key, Some(old_key));
-		assert_eq!(chain.next_header_key, old_next_header_key);
+		assert_eq!(chain.header_key.as_deref(), Some(&[2; 32]));
+		assert_ne!(chain.key.as_deref(), Some(&[1; 32]));
+		assert_eq!(*chain.next_header_key, [3; 32]);
 		assert_eq!(chain.next_msg_num(), 1);
 		assert_eq!(chain.prev_msgs_cnt(), 0);
 
 		// Upgrade chain
-		let new_key = <crate::default_crypto::Provider as crate::crypto::Provider>
-			::MsgChainKey::new([234; 32]);
-		let new_next_header_key =
+		chain.upgrade(
 			<crate::default_crypto::Provider as crate::crypto::Provider>
-				::HeaderKey::from([120; 32]);
-		chain.upgrade(new_key.clone(), new_next_header_key.clone());
+				::MsgChainKey::new([4; 32]),
+			<crate::default_crypto::Provider as crate::crypto::Provider>
+				::HeaderKey::from([5; 32]),
+		);
 
 		// Check upgrade is done
-		assert_eq!(chain.header_key, Some(old_next_header_key));
-		assert_eq!(chain.key, Some(new_key));
-		assert_eq!(chain.next_header_key, new_next_header_key);
+		assert_eq!(chain.header_key.as_deref(), Some(&[3; 32]));
+		assert_eq!(chain.key.as_deref(), Some(&[4; 32]));
+		assert_eq!(*chain.next_header_key, [5; 32]);
 		assert_eq!(chain.next_msg_num(), 0);
 		assert_eq!(chain.prev_msgs_cnt(), 1);
 

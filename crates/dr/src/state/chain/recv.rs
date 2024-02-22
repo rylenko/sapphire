@@ -235,15 +235,6 @@ mod tests {
 	}
 
 	#[test]
-	fn test_kdf_error() {
-		use super::super::Chain as _;
-
-		let mut chain = create_chain();
-		// No ekey
-		assert!(chain.kdf().is_err());
-	}
-
-	#[test]
 	fn test_skip_msg_keys_and_pop_skipped_msg_key() {
 		use {super::super::Chain as _, crate::crypto::Provider as _};
 
@@ -309,6 +300,7 @@ mod tests {
 
 		// Create chain
 		let mut chain = create_chain();
+		assert!(chain.kdf().is_err());
 		let old_next_header_key = chain.next_header_key.clone();
 
 		// Upgrade chain

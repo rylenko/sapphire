@@ -41,14 +41,15 @@ mod tests {
 		use crate::crypto::{KeyPair as _, Provider as _};
 
 		// Create chain
-		let key = <crate::default_crypto::Provider as crate::crypto::Provider>
-			::RootChainKey::from([100; 32]);
-		let mut chain =
-			super::Root::<crate::default_crypto::Provider>::new(key.clone());
+		let mut chain = super::Root::<crate::default_crypto::Provider>::new(
+			<crate::default_crypto::Provider as crate::crypto::Provider>
+				::RootChainKey::from([1; 32]),
+		);
 
 		// Create local and remote keys
-		let remote_public_key = <crate::default_crypto::KeyPair as crate::crypto::KeyPair>
-			::Public::from([222; 32]);
+		let remote_public_key =
+			<crate::default_crypto::KeyPair as crate::crypto::KeyPair>
+				::Public::from([222; 32]);
 		let local_key_pair = crate::default_crypto::KeyPair::rand();
 
 		// Calculate Diffie-Hellman input and use KDF
@@ -60,6 +61,6 @@ mod tests {
 
 		// TODO: find new key value with third-party resource
 		// TODO: more asserts?
-		assert_ne!(chain.key, key);
+		assert_ne!(*chain.key, [1; 32]);
 	}
 }
