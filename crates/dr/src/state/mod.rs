@@ -14,7 +14,6 @@ mod skipped_msg_keys;
 pub use num::Num;
 
 /// State of Alice and Bob.
-#[rustfmt::skip]
 pub struct State<P: crate::crypto::Provider> {
 	/// Diffie-Hellman local private and public keys pair.
 	local_key_pair: P::KeyPair,
