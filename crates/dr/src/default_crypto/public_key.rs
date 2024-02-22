@@ -50,3 +50,23 @@ impl bincode::Decode for PublicKey {
 		Ok(From::<[u8; 32]>::from(bincode::Decode::decode(d)?))
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	#[test]
+	fn test_encode_and_decode() {
+		let key = super::PublicKey::from([1; 32]);
+
+		// Encode
+		let bytes =
+			bincode::encode_to_vec(key, bincode::config::standard()).unwrap();
+		assert_eq!(bytes, [1; 32]);
+
+		// Decode
+		let key_copy =
+			bincode::decode_from_slice(&bytes, bincode::config::standard())
+				.unwrap()
+				.0;
+		assert_eq!(key, key_copy);
+	}
+}

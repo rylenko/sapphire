@@ -14,7 +14,8 @@ impl PartialEq for KeyPair {
 
 impl core::fmt::Debug for KeyPair {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-		f.debug_tuple("KeyPair").field(&"<secret>").field(&self.1).finish()
+		// Don't debug private key
+		f.debug_tuple("KeyPair").field(&"<private>").field(&self.1).finish()
 	}
 }
 
