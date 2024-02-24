@@ -79,7 +79,7 @@ impl core::fmt::Display for Decrypt {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum DecryptHeader {
-	Decode,
+	FromBytes,
 	KeysNotFit,
 }
 
@@ -88,7 +88,7 @@ impl core::error::Error for DecryptHeader {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::Decode | Self::KeysNotFit => None,
+			Self::FromBytes | Self::KeysNotFit => None,
 		}
 	}
 }
@@ -96,8 +96,8 @@ impl core::error::Error for DecryptHeader {
 impl core::fmt::Display for DecryptHeader {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::Decode => {
-				write!(f, "Failed to decode the header.")
+			Self::FromBytes => {
+				write!(f, "Failed to convert bytes to header.")
 			}
 			Self::KeysNotFit => {
 				write!(f, "Keys do not fit..")

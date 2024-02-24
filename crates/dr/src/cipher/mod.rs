@@ -149,3 +149,23 @@ pub(crate) fn encrypt_auth(
 	encrypted_plain.extend(hmac);
 	Ok(encrypted_plain)
 }
+
+#[cfg(test)]
+mod tests {
+	const KEY: &[u8] = b"key to encrypt plain text";
+	const PLAIN: &[u8] = b"plain test 1234567890";
+
+	#[test]
+	fn test_decrypt_and_encrypt() {
+		let cipher = super::encrypt(KEY, PLAIN).unwrap();
+
+		// Test decryption of cipher
+		assert_ne!(cipher, PLAIN);
+		assert!(super::decrypt(b"another key", &cipher).is_err());
+		assert_eq!(super::decrypt(KEY, &cipher).unwrap(), PLAIN);
+
+		// Test uniqueness of cipher
+		assert_ne!(cipher, super::encrypt(KEY, b"another plain").unwrap());
+		assert_ne!(cipher, super::encrypt(b"another key", PLAIN).unwrap());
+	}
+}

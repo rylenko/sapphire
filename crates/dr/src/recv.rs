@@ -62,7 +62,7 @@ impl Recv {
 				super::cipher::decrypt(header_key.as_bytes(), encrypted_header)
 			{
 				let header = super::header::Header::ref_from(&bytes)
-					.ok_or(super::error::DecryptHeader::Decode)?;
+					.ok_or(super::error::DecryptHeader::FromBytes)?;
 				return Ok((header.to_owned(), false));
 			}
 		}
@@ -73,7 +73,7 @@ impl Recv {
 			encrypted_header,
 		) {
 			let header = super::header::Header::ref_from(&bytes)
-				.ok_or(super::error::DecryptHeader::Decode)?;
+				.ok_or(super::error::DecryptHeader::FromBytes)?;
 			return Ok((header.to_owned(), true));
 		}
 
