@@ -154,6 +154,7 @@ pub(crate) fn encrypt_auth(
 mod tests {
 	const KEY: &[u8] = b"key to encrypt plain text";
 	const PLAIN: &[u8] = b"plain test 1234567890";
+	const AUTH: &[&[u8]] = &[b"encrypted-header", b"user-auth-data"];
 
 	#[test]
 	fn test_decrypt_and_encrypt() {
@@ -163,9 +164,19 @@ mod tests {
 		assert_ne!(cipher, PLAIN);
 		assert!(super::decrypt(b"another key", &cipher).is_err());
 		assert_eq!(super::decrypt(KEY, &cipher).unwrap(), PLAIN);
+	}
 
-		// Test uniqueness of cipher
-		assert_ne!(cipher, super::encrypt(KEY, b"another plain").unwrap());
-		assert_ne!(cipher, super::encrypt(b"another key", PLAIN).unwrap());
+	#[test]
+	fn test_decrypt_auth_and_encrypt_auth() {
+		let cipher = super::encrypt_auth(KEY, PLAIN, AUTH).unwrap();
+
+		assert_ne!(cipher, PLAIN);
+		assert!(super::decrypt_auth(b"another key", &cipher, AUTH).is_err());
+		assert!(super::decrypt_auth(KEY, &cipher, &[
+			b"encrypted-header",
+			b"invalid-user-auth-data"
+		])
+		.is_err());
+		assert_eq!(super::decrypt_auth(KEY, &cipher, AUTH).unwrap(), PLAIN);
 	}
 }

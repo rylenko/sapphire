@@ -54,33 +54,33 @@ impl SkippedMsgKeys {
 		use zerocopy::FromBytes as _;
 
 		let mut ret = None;
+		// The header key will be located here, which will no longer contain
+		// skipped message keys
 		let mut empty_header_key = None;
 
 		// Iterate over elements
 		for (header_key, values) in &mut self.0 {
 			// Try to decrypt header with iterated header key
-			let Ok(bytes) = super::cipher::decrypt(
-				header_key.as_bytes(),
-				encrypted_header,
-			) else {
-				continue;
-			};
+			if let Ok(bytes) =
+				super::cipher::decrypt(header_key.as_bytes(), encrypted_header)
+			{
+				// Extract message number from header bytes
+				let msg_num = super::header::Header::ref_from(&bytes)
+					.ok_or(super::error::PopSkippedMsgKey::DecodeHeader)?
+					.msg_num();
 
-			// Decode decrypted header bytes
-			let msg_num = super::header::Header::ref_from(&bytes)
-				.ok_or(super::error::PopSkippedMsgKey::DecodeHeader)?
-				.msg_num();
+				// Try to remove message number to get message key
+				if let Some(msg_key) = values.remove(&msg_num) {
+					if values.is_empty() {
+						empty_header_key = Some(header_key.clone());
+					}
+					ret = Some(msg_key);
+				};
 
-			// Try to remove message number to get message key or break loop
-			// because of no point in checking other keys
-			let Some(msg_key) = values.remove(&msg_num) else {
+				// We managed to decrypt it, so there is no point in looking at
+				// other keys
 				break;
 			};
-
-			if values.is_empty() {
-				empty_header_key = Some(header_key.clone());
-			}
-			ret = Some(msg_key);
 		}
 
 		// Remove header key with no skipped message keys
