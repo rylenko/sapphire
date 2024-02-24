@@ -7,7 +7,7 @@ const HKDF_INFO: &[u8] = b"hkdf_info";
 const HKDF_OUT_SIZE: usize = 56;
 const HKDF_SALT: &[u8] = &[0; HKDF_OUT_SIZE];
 
-/// Decrpypts header bytes `cipher` using `key`.
+/// Decrpypts bytes `cipher` using `key`.
 pub(crate) fn decrypt(
 	key: &[u8],
 	cipher: &[u8],
@@ -84,7 +84,7 @@ pub(crate) fn decrypt_auth(
 	Ok(plain)
 }
 
-/// Encrypts header bytes `plain` using key.
+/// Encrypts bytes `plain` using `key`.
 pub(crate) fn encrypt(
 	key: &[u8],
 	plain: &[u8],
