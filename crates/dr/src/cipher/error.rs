@@ -17,11 +17,9 @@ impl core::error::Error for Decrypt {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::Inner(..) => {
-				// TODO: Wait until `chacha20poly1305::Error` refuses `std` to
-				// impl `Error`
-				None
-			}
+			// TODO: Wait until `chacha20poly1305::Error` refuses `std` to
+			// impl `Error`
+			Self::Inner(..) => None,
 		}
 	}
 }
@@ -93,11 +91,9 @@ impl core::error::Error for Encrypt {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::Inner(..) => {
-				// TODO: Wait until `chacha20poly1305::Error` refuses `std` to
-				// impl `Error`
-				None
-			}
+			// TODO: Wait until `chacha20poly1305::Error` refuses `std` to
+			// impl `Error`
+			Self::Inner(..) => None,
 		}
 	}
 }
@@ -130,11 +126,9 @@ impl core::error::Error for EncryptAuth {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::Inner(..) => {
-				// TODO: Wait until `chacha20poly1305::Error` refuses `std` to
-				// impl `Error`
-				None
-			}
+			// TODO: Wait until `chacha20poly1305::Error` refuses `std` to
+			// impl `Error`
+			Self::Inner(..) => None,
 		}
 	}
 }
