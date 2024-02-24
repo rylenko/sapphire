@@ -1,40 +1,30 @@
 /// Receiving chain of [`State`].
 ///
 /// [`State`]: super::State
-pub(super) struct Recv<P>
-where
-	P: crate::crypto::Provider,
-{
+#[derive(Clone, Eq, PartialEq)]
+pub(super) struct Recv {
 	/// Is initially a shared secret. Later is the next header key.
-	header_key: Option<P::HeaderKey>,
-
+	header_key: Option<super::key::Header>,
 	/// Output chain key of KDF when receiving messages.
-	key: Option<P::MsgChainKey>,
-
+	key: Option<super::key::MsgChain>,
 	/// Is initially a shared secret. Later is the output of KDF from root
 	/// key and Diffie-Hellman output.
-	next_header_key: P::HeaderKey,
-
+	next_header_key: super::key::Header,
 	/// Number of the next message.
-	next_msg_num: super::num::Num,
-
+	next_msg_num: u32,
 	/// Skipped message keys, which can be adopted in the future.
-	skipped_msg_keys: super::skipped_msg_keys::SkippedMsgKeys<P>,
-
+	skipped_msg_keys: super::skipped_msg_keys::SkippedMsgKeys,
 	/// Max count of skipped messages.
-	skipped_msg_keys_max_cnt: super::num::Num,
+	skipped_msg_keys_max_cnt: u32,
 }
 
-impl<P> Recv<P>
-where
-	P: crate::crypto::Provider,
-{
+impl Recv {
 	/// Creates new receiving chain.
 	#[inline]
 	#[must_use]
 	pub(super) fn new(
-		next_header_key: P::HeaderKey,
-		skipped_msg_keys_max_cnt: super::num::Num,
+		next_header_key: super::key::Header,
+		skipped_msg_keys_max_cnt: u32,
 	) -> Self {
 		Self {
 			header_key: None,
@@ -63,23 +53,28 @@ where
 	pub(super) fn decrypt_header(
 		&self,
 		encrypted_header: &[u8],
-	) -> Result<(super::header::Header<P>, bool), super::error::DecryptHeader>
-	{
-		use crate::code::Decode as _;
+	) -> Result<(super::header::Header, bool), super::error::DecryptHeader> {
+		use {alloc::borrow::ToOwned as _, zerocopy::FromBytes as _};
 
 		// Try to decrypt with current header key
 		if let Some(ref header_key) = self.header_key {
-			if let Ok(bytes) = P::decrypt_header(header_key, encrypted_header)
+			if let Ok(bytes) =
+				super::cipher::decrypt(header_key.as_bytes(), encrypted_header)
 			{
-				return Ok((super::header::Header::decode(&bytes)?.0, false));
+				let header = super::header::Header::ref_from(&bytes)
+					.ok_or(super::error::DecryptHeader::Decode)?;
+				return Ok((header.to_owned(), false));
 			}
 		}
 
 		// Try to decrypt with next header key
-		if let Ok(bytes) =
-			P::decrypt_header(&self.next_header_key, encrypted_header)
-		{
-			return Ok((super::header::Header::decode(&bytes)?.0, true));
+		if let Ok(bytes) = super::cipher::decrypt(
+			self.next_header_key.as_bytes(),
+			encrypted_header,
+		) {
+			let header = super::header::Header::ref_from(&bytes)
+				.ok_or(super::error::DecryptHeader::Decode)?;
+			return Ok((header.to_owned(), true));
 		}
 
 		Err(super::error::DecryptHeader::KeysNotFit)
@@ -92,13 +87,13 @@ where
 	pub(super) fn pop_skipped_msg_key(
 		&mut self,
 		encrypted_header: &[u8],
-	) -> Result<Option<P::MsgKey>, super::error::PopSkippedMsgKey> {
+	) -> Result<Option<super::key::Msg>, super::error::PopSkippedMsgKey> {
 		self.skipped_msg_keys.pop(encrypted_header)
 	}
 
 	pub(super) fn skip_msg_keys(
 		&mut self,
-		until: super::num::Num,
+		until: u32,
 	) -> Result<(), super::error::SkipMsgKeys> {
 		use {super::msg_chain::MsgChain as _, alloc::borrow::ToOwned as _};
 
@@ -116,7 +111,7 @@ where
 				(msg_key, header_key.to_owned())
 			};
 			self.skipped_msg_keys.insert(
-				header_key.to_owned(),
+				header_key,
 				self.next_msg_num - 1,
 				msg_key,
 			);
@@ -126,17 +121,16 @@ where
 	}
 }
 
-impl<P> super::msg_chain::MsgChain<P> for Recv<P>
-where
-	P: crate::crypto::Provider,
-{
+impl super::msg_chain::MsgChain for Recv {
 	type KdfError = super::error::RecvKdf;
 
-	fn kdf(&mut self) -> Result<(P::MsgKey, &P::HeaderKey), Self::KdfError> {
+	fn kdf(
+		&mut self,
+	) -> Result<(super::key::Msg, &super::key::Header), Self::KdfError> {
 		match self.key {
 			Some(ref key) => match self.header_key {
 				Some(ref header_key) => {
-					let (new_key, msg_key) = P::kdf_msg_chain(key);
+					let (new_key, msg_key) = Self::kdf_inner(key);
 					self.key = Some(new_key);
 					self.next_msg_num += 1;
 					Ok((msg_key, header_key))
@@ -149,8 +143,8 @@ where
 
 	fn upgrade(
 		&mut self,
-		new_key: P::MsgChainKey,
-		new_next_header_key: P::HeaderKey,
+		new_key: super::key::MsgChain,
+		new_next_header_key: super::key::Header,
 	) {
 		self.header_key = Some(core::mem::replace(
 			&mut self.next_header_key,
@@ -163,23 +157,18 @@ where
 
 #[cfg(test)]
 mod tests {
-	const SKIPPED_MSG_KEYS_MAX_CNT: super::super::num::Num = 100;
+	const SKIPPED_MSG_KEYS_MAX_CNT: u32 = 100;
 
-	fn create_chain() -> super::Recv<crate::default_crypto::Provider> {
-		super::Recv::<crate::default_crypto::Provider>::new(
-			<crate::default_crypto::Provider as crate::crypto::Provider>
-				::HeaderKey::from([123; 32]),
+	fn create_chain() -> super::Recv {
+		super::Recv::new(
+			super::super::key::Header::from([123; 32]),
 			SKIPPED_MSG_KEYS_MAX_CNT,
 		)
 	}
 
-	fn create_header(
-		msg_num: super::super::num::Num,
-	) -> super::super::header::Header<crate::default_crypto::Provider> {
-		super::super::header::Header::<crate::default_crypto::Provider>
-		::new(
-			<crate::default_crypto::KeyPair as crate::crypto::KeyPair>
-				::Public::from([1; 32]),
+	fn create_header(msg_num: u32) -> super::super::header::Header {
+		super::super::header::Header::new(
+			super::super::key::Public::from([1; 32]),
 			msg_num,
 			100,
 		)
@@ -187,36 +176,34 @@ mod tests {
 
 	#[test]
 	fn test_decrypt_header() {
-		use crate::{code::Encode as _, crypto::Provider as _};
+		use zerocopy::AsBytes as _;
 
 		// Create and upgrade chain
 		let mut chain = create_chain();
 		upgrade(&mut chain, [1; 32], [2; 32]);
 
+		// Create header
 		let header = create_header(1);
-		let header_bytes = header.encode();
 
 		// Encrypt header bytes with current header key
-		let encrypted_header =
-			crate::default_crypto::Provider::encrypt_header(
-				// `Option::unwrap` because of upgrade
-				chain.header_key.as_ref().unwrap(),
-				&header_bytes,
-			)
-			.unwrap();
+		let encrypted_header = super::super::cipher::encrypt(
+			// `Option::unwrap` because of upgrade
+			chain.header_key.as_ref().unwrap().as_bytes(),
+			header.as_bytes(),
+		)
+		.unwrap();
 
 		// Encrypt header bytes with next header key
-		let next_encrypted_header =
-			crate::default_crypto::Provider::encrypt_header(
-				&chain.next_header_key,
-				&header_bytes,
-			)
-			.unwrap();
+		let next_encrypted_header = super::super::cipher::encrypt(
+			chain.next_header_key.as_bytes(),
+			header.as_bytes(),
+		)
+		.unwrap();
 
 		// Validate usage of keys
 		assert_eq!(
 			chain.decrypt_header(&encrypted_header).unwrap(),
-			(header.clone(), false)
+			(header, false)
 		);
 		assert_eq!(
 			chain.decrypt_header(&next_encrypted_header).unwrap(),
@@ -227,10 +214,7 @@ mod tests {
 
 	#[test]
 	fn test_skip_msg_keys_and_pop_skipped_msg_key() {
-		use {
-			super::super::msg_chain::MsgChain as _,
-			crate::{code::Encode as _, crypto::Provider as _},
-		};
+		use {super::super::msg_chain::MsgChain as _, zerocopy::AsBytes as _};
 
 		// Create chain and try skip too much
 		let mut chain = create_chain();
@@ -244,8 +228,8 @@ mod tests {
 		assert_eq!(chain.next_msg_num, 2);
 
 		// Create headers
-		let header_bytes_1 = create_header(0).encode();
-		let header_bytes_2 = create_header(1).encode();
+		let header_1 = create_header(0);
+		let header_2 = create_header(1);
 
 		// Create copy of chain
 		let mut chain_clone = create_chain();
@@ -254,23 +238,21 @@ mod tests {
 		let (msg_key_2, header_key) = chain_clone.kdf().unwrap();
 
 		// Encrypt headers
-		let encrypted_header_1 =
-			crate::default_crypto::Provider::encrypt_header(
-				header_key,
-				&header_bytes_1,
-			)
-			.unwrap();
-		let encrypted_header_2 =
-			crate::default_crypto::Provider::encrypt_header(
-				header_key,
-				&header_bytes_2,
-			)
-			.unwrap();
+		let encrypted_header_1 = super::super::cipher::encrypt(
+			header_key.as_bytes(),
+			header_1.as_bytes(),
+		)
+		.unwrap();
+		let encrypted_header_2 = super::super::cipher::encrypt(
+			header_key.as_bytes(),
+			header_2.as_bytes(),
+		)
+		.unwrap();
 
 		// Pop from original chain
 		assert_eq!(
-			chain.pop_skipped_msg_key(&encrypted_header_1).unwrap().as_deref(),
-			Some(&*msg_key_1),
+			chain.pop_skipped_msg_key(&encrypted_header_1).unwrap(),
+			Some(msg_key_1),
 		);
 		assert_eq!(
 			chain.pop_skipped_msg_key(&encrypted_header_1).unwrap(),
@@ -278,8 +260,8 @@ mod tests {
 		);
 		assert_eq!(chain.skipped_msg_keys.inner().len(), 1);
 		assert_eq!(
-			chain.pop_skipped_msg_key(&encrypted_header_2).unwrap().as_deref(),
-			Some(&*msg_key_2),
+			chain.pop_skipped_msg_key(&encrypted_header_2).unwrap(),
+			Some(msg_key_2),
 		);
 		assert_eq!(
 			chain.pop_skipped_msg_key(&encrypted_header_2).unwrap(),
@@ -302,9 +284,9 @@ mod tests {
 
 		// Check upgrade is done
 		assert_eq!(chain.header_key.as_ref(), Some(&old_next_header_key));
-		assert_eq!(chain.key.as_deref(), Some(&[1; 32]));
+		assert_eq!(chain.key.as_ref().unwrap().as_bytes(), &[1; 32]);
 		assert_eq!(chain.next_msg_num, 0);
-		assert_eq!(&*chain.next_header_key, &[2; 32]);
+		assert_eq!(chain.next_header_key.as_bytes(), &[2; 32]);
 
 		// Use KDF
 		chain.kdf().unwrap();
@@ -313,31 +295,25 @@ mod tests {
 
 		// Check KDF is done
 		assert_eq!(chain.header_key, Some(old_next_header_key));
-		assert_ne!(chain.key.as_deref(), Some(&[1; 32]));
+		assert_ne!(chain.key.as_ref().unwrap().as_bytes(), &[1; 32]);
 		assert_eq!(chain.next_msg_num, 3);
-		assert_eq!(*chain.next_header_key, [2; 32]);
+		assert_eq!(chain.next_header_key.as_bytes(), &[2; 32]);
 
 		// Upgrade chain
 		upgrade(&mut chain, [3; 32], [4; 32]);
 
 		// Check upgrade is done
-		assert_eq!(chain.header_key.as_deref(), Some(&[2; 32]));
-		assert_eq!(chain.key.as_deref(), Some(&[3; 32]));
+		assert_eq!(chain.header_key.as_ref().unwrap().as_bytes(), &[2; 32]);
+		assert_eq!(chain.key.as_ref().unwrap().as_bytes(), &[3; 32]);
 		assert_eq!(chain.next_msg_num, 0);
-		assert_eq!(*chain.next_header_key, [4; 32]);
+		assert_eq!(chain.next_header_key.as_bytes(), &[4; 32]);
 	}
 
-	fn upgrade(
-		chain: &mut super::Recv<crate::default_crypto::Provider>,
-		key: [u8; 32],
-		header_key: [u8; 32],
-	) {
-		use super::super::msg_chain::MsgChain as _;
-		chain.upgrade(
-			<crate::default_crypto::Provider as crate::crypto::Provider>
-				::MsgChainKey::from(key),
-			<crate::default_crypto::Provider as crate::crypto::Provider>
-				::HeaderKey::from(header_key),
+	fn upgrade(chain: &mut super::Recv, key: [u8; 32], header_key: [u8; 32]) {
+		super::super::msg_chain::MsgChain::upgrade(
+			chain,
+			super::super::key::MsgChain::from(key),
+			super::super::key::Header::from(header_key),
 		);
 	}
 }

@@ -1,18 +1,16 @@
-/// Storage for skipped message keys.
-#[repr(transparent)]
-pub(super) struct SkippedMsgKeys<P: crate::crypto::Provider>(
-	/// Keys are not pair of header key and message number because of
-	/// reference to header key in getting function
-	hashbrown::HashMap<
-		P::HeaderKey,
-		hashbrown::HashMap<super::num::Num, P::MsgKey>,
-	>,
-);
+/// Keys are not pair of header key and message number because of
+/// reference to header key in getting function
+pub(super) type Inner = hashbrown::HashMap<
+	super::key::Header,
+	hashbrown::HashMap<u32, super::key::Msg>,
+>;
 
-impl<P> SkippedMsgKeys<P>
-where
-	P: crate::crypto::Provider,
-{
+/// Storage for skipped message keys.
+#[derive(Clone, Eq, PartialEq)]
+#[repr(transparent)]
+pub(super) struct SkippedMsgKeys(Inner);
+
+impl SkippedMsgKeys {
 	/// Creates empty storage.
 	#[inline]
 	#[must_use]
@@ -23,21 +21,16 @@ where
 	#[cfg(test)]
 	#[inline]
 	#[must_use]
-	pub(super) fn inner(
-		&self,
-	) -> &hashbrown::HashMap<
-		P::HeaderKey,
-		hashbrown::HashMap<super::num::Num, P::MsgKey>,
-	> {
+	pub(super) fn inner(&self) -> &Inner {
 		&self.0
 	}
 
 	/// Inserts new entry.
 	pub(super) fn insert(
 		&mut self,
-		header_key: P::HeaderKey,
-		msg_num: super::num::Num,
-		msg_key: P::MsgKey,
+		header_key: super::key::Header,
+		msg_num: u32,
+		msg_key: super::key::Msg,
 	) {
 		let values = self.0.entry(header_key).or_default();
 		values.insert(msg_num, msg_key);
@@ -57,8 +50,8 @@ where
 	pub(super) fn pop(
 		&mut self,
 		encrypted_header: &[u8],
-	) -> Result<Option<P::MsgKey>, super::error::PopSkippedMsgKey> {
-		use {crate::code::Decode as _, alloc::borrow::ToOwned as _};
+	) -> Result<Option<super::key::Msg>, super::error::PopSkippedMsgKey> {
+		use zerocopy::FromBytes as _;
 
 		let mut ret = None;
 		let mut empty_header_key = None;
@@ -66,14 +59,17 @@ where
 		// Iterate over elements
 		for (header_key, values) in &mut self.0 {
 			// Try to decrypt header with iterated header key
-			let Ok(bytes) = P::decrypt_header(header_key, encrypted_header)
-			else {
+			let Ok(bytes) = super::cipher::decrypt(
+				header_key.as_bytes(),
+				encrypted_header,
+			) else {
 				continue;
 			};
 
 			// Decode decrypted header bytes
-			let msg_num =
-				super::header::Header::<P>::decode(&bytes)?.0.msg_num();
+			let msg_num = super::header::Header::ref_from(&bytes)
+				.ok_or(super::error::PopSkippedMsgKey::DecodeHeader)?
+				.msg_num();
 
 			// Try to remove message number to get message key or break loop
 			// because of no point in checking other keys
@@ -82,7 +78,7 @@ where
 			};
 
 			if values.is_empty() {
-				empty_header_key = Some(header_key.to_owned());
+				empty_header_key = Some(header_key.clone());
 			}
 			ret = Some(msg_key);
 		}
@@ -101,18 +97,17 @@ mod tests {
 	#[test]
 	fn test_insert() {
 		// Create test data
-		let header_key = <crate::default_crypto::Provider as crate::crypto::Provider>
-			::HeaderKey::from([1; 32]);
-		let msg_key = <crate::default_crypto::Provider as crate::crypto::Provider>
-			::MsgKey::from([2; 32]);
+		let header_key = crate::key::Header::from([1; 32]);
+		let msg_key = crate::key::Msg::from([2; 32]);
 
 		// Insert
-		let mut a =
-			super::SkippedMsgKeys::<crate::default_crypto::Provider>::new();
+		let mut a = super::SkippedMsgKeys::new();
 		a.insert(header_key.clone(), 100, msg_key.clone());
 
 		// Get
-		assert_eq!(a.0.get(&header_key).unwrap().get(&100).unwrap(), &msg_key);
+		let got_msg_key =
+			a.0.get(&header_key).unwrap().get(&100).unwrap().as_bytes();
+		assert_eq!(got_msg_key, &[2; 32]);
 	}
 
 	#[test]

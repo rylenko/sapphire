@@ -2,16 +2,20 @@
 Double ratchet algorithm implementation for Sapphire.
 */
 
-#![forbid(missing_docs)]
 #![feature(error_in_core)]
 #![no_std]
 
 extern crate alloc;
 
-mod code;
-pub mod crypto;
-#[cfg(any(test, feature = "default-crypto"))]
-pub mod default_crypto;
+mod cipher;
+mod error;
+mod header;
+pub mod key;
+mod msg_chain;
+mod recv;
+mod root;
+mod send;
+mod skipped_msg_keys;
 mod state;
 
-pub use state::{Num, State};
+pub use state::State;
