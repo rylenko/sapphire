@@ -53,7 +53,7 @@ pub(crate) fn decrypt_auth(
 
 	// Calculate HMAC using received cipher and auth data
 	let hmac_got: [u8; 32] = {
-		use hkdf::hmac::Mac as _;
+		use hkdf::hmac::Mac;
 
 		// Create HMAC using auth key
 		let mut hmac =
@@ -126,7 +126,7 @@ pub(crate) fn encrypt_auth(
 
 	// Authenticate
 	let hmac: [u8; 32] = {
-		use hkdf::hmac::Mac as _;
+		use hkdf::hmac::Mac;
 
 		// Create HMAC using auth key
 		let mut hmac =
