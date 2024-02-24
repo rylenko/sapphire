@@ -39,7 +39,10 @@ pub(crate) fn decrypt_auth(
 	if cipher.len() < 32 {
 		return Err(error::DecryptAuth::NoHmac);
 	}
-	let cipher_len_without_hmac = cipher.len() - 32;
+
+	// Split cipher into encrypted_plain and hmac
+	let encrypted_plain = &cipher[..cipher.len() - 32];
+	let hmac_expected = &cipher[cipher.len() - 32..];
 
 	// Get cipher key, auth key and nonce via HKDF. [..32] is
 	// encryption key, [32..64] is auth key and [64..] is nonce.
@@ -49,8 +52,8 @@ pub(crate) fn decrypt_auth(
 		.expect("`AUTH_HKDF_OUT_SIZE` must be a good length.");
 
 	// Calculate HMAC using received cipher and auth data
-	let got_hmac: [u8; 32] = {
-		use hkdf::hmac::Mac;
+	let hmac_got: [u8; 32] = {
+		use hkdf::hmac::Mac as _;
 
 		// Create HMAC using auth key
 		let mut hmac =
@@ -60,7 +63,7 @@ pub(crate) fn decrypt_auth(
 			.expect("Any size is good.");
 
 		// Update HMAC with cipher and auth data
-		hmac.update(cipher);
+		hmac.update(encrypted_plain);
 		for a in auth {
 			hmac.update(a);
 		}
@@ -70,17 +73,14 @@ pub(crate) fn decrypt_auth(
 	};
 
 	// Compare HMACs
-	if got_hmac != cipher[cipher_len_without_hmac..] {
+	if hmac_got != hmac_expected {
 		return Err(error::DecryptAuth::Auth);
 	}
 
 	// Decrypt plain text using cipher key and nonce
 	let plain =
 		chacha20poly1305::XChaCha20Poly1305::new((&hkdf_out[..32]).into())
-			.decrypt(
-				(&hkdf_out[64..]).into(),
-				&cipher[..cipher_len_without_hmac],
-			)?;
+			.decrypt((&hkdf_out[64..]).into(), encrypted_plain)?;
 	Ok(plain)
 }
 
@@ -120,13 +120,13 @@ pub(crate) fn encrypt_auth(
 		.expect("`AUTH_HKDF_OUT_SIZE` must be a good length.");
 
 	// Encrypt plain text using encryption key and nonce
-	let mut cipher =
+	let mut encrypted_plain =
 		chacha20poly1305::XChaCha20Poly1305::new((&hkdf_out[..32]).into())
 			.encrypt((&hkdf_out[64..]).into(), plain)?;
 
 	// Authenticate
 	let hmac: [u8; 32] = {
-		use hkdf::hmac::Mac;
+		use hkdf::hmac::Mac as _;
 
 		// Create HMAC using auth key
 		let mut hmac =
@@ -136,7 +136,7 @@ pub(crate) fn encrypt_auth(
 			.expect("Any size is good.");
 
 		// Update HMAC with cipher and auth data
-		hmac.update(&cipher);
+		hmac.update(&encrypted_plain);
 		for a in auth {
 			hmac.update(a);
 		}
@@ -146,6 +146,6 @@ pub(crate) fn encrypt_auth(
 	};
 
 	// Append authenticated HMAC to end of cipher text
-	cipher.extend(hmac);
-	Ok(cipher)
+	encrypted_plain.extend(hmac);
+	Ok(encrypted_plain)
 }
