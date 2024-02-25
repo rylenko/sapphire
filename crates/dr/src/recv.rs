@@ -123,16 +123,16 @@ impl Recv {
 
 impl super::msg_chain::MsgChain for Recv {
 	type KdfError = super::error::RecvKdf;
+	type KdfOk<'a> = (super::key::Msg, &'a super::key::Header);
 
-	fn kdf(
-		&mut self,
-	) -> Result<(super::key::Msg, &super::key::Header), Self::KdfError> {
+	fn kdf(&mut self) -> Result<Self::KdfOk<'_>, Self::KdfError> {
 		match self.key {
 			Some(ref key) => match self.header_key {
 				Some(ref header_key) => {
+					self.next_msg_num += 1;
+
 					let (new_key, msg_key) = Self::kdf_inner(key);
 					self.key = Some(new_key);
-					self.next_msg_num += 1;
 					Ok((msg_key, header_key))
 				}
 				None => Err(Self::KdfError::NoHeaderKey),

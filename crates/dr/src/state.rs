@@ -142,15 +142,15 @@ impl State {
 	> {
 		use {super::msg_chain::MsgChain as _, zerocopy::AsBytes as _};
 
+		// Move sending chain forward
+		let (msg_key, msg_num, header_key, prev_msgs_cnt) = self.send.kdf()?;
+
 		// Create header and encode it to bytes
 		let header = super::header::Header::new(
 			super::key::Public::from(&self.local_private_key),
-			self.send.next_msg_num(),
-			self.send.prev_msgs_cnt(),
+			msg_num,
+			prev_msgs_cnt,
 		);
-
-		// Move sending chain forward
-		let (msg_key, header_key) = self.send.kdf()?;
 
 		// Encrypt header's bytes
 		let encrypted_header =

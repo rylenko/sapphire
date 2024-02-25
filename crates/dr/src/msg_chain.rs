@@ -1,13 +1,14 @@
 /// Common trait for receiving and sending chains.
 pub(super) trait MsgChain {
 	type KdfError: core::error::Error;
+	type KdfOk<'a>
+	where
+		Self: 'a;
 
 	/// Wrapper for [`kdf_inner`].
 	///
 	/// [`kdf_inner`]: Self::kdf_inner
-	fn kdf(
-		&mut self,
-	) -> Result<(super::key::Msg, &super::key::Header), Self::KdfError>;
+	fn kdf(&mut self) -> Result<Self::KdfOk<'_>, Self::KdfError>;
 
 	/// Moves chain forward. Common implementation for all. Should be wrapped
 	/// with [kdf].

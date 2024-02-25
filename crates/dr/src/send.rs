@@ -36,33 +36,29 @@ impl Send {
 			prev_msgs_cnt: 0,
 		}
 	}
-
-	#[inline]
-	#[must_use]
-	pub(super) const fn next_msg_num(&self) -> u32 {
-		self.next_msg_num
-	}
-
-	#[inline]
-	#[must_use]
-	pub(super) const fn prev_msgs_cnt(&self) -> u32 {
-		self.prev_msgs_cnt
-	}
 }
 
 impl super::msg_chain::MsgChain for Send {
 	type KdfError = super::error::SendKdf;
+	type KdfOk<'a> = (super::key::Msg, u32, &'a super::key::Header, u32);
 
-	fn kdf(
-		&mut self,
-	) -> Result<(super::key::Msg, &super::key::Header), Self::KdfError> {
+	fn kdf(&mut self) -> Result<Self::KdfOk<'_>, Self::KdfError> {
 		match self.key {
 			Some(ref key) => match self.header_key {
 				Some(ref header_key) => {
+					// Use inner KDF to get new root and message keys
 					let (new_key, msg_key) = Self::kdf_inner(key);
 					self.key = Some(new_key);
+
+					// Prepare output
+					let ret = (
+						msg_key,
+						self.next_msg_num,
+						header_key,
+						self.prev_msgs_cnt,
+					);
 					self.next_msg_num += 1;
-					Ok((msg_key, header_key))
+					Ok(ret)
 				}
 				None => Err(Self::KdfError::NoHeaderKey),
 			},
@@ -112,8 +108,8 @@ mod tests {
 		);
 
 		// Base asserts
-		assert_eq!(chain.next_msg_num(), 0);
-		assert_eq!(chain.prev_msgs_cnt(), 0);
+		assert_eq!(chain.next_msg_num, 0);
+		assert_eq!(chain.prev_msgs_cnt, 0);
 
 		// KDF
 		chain.kdf()?;
@@ -122,8 +118,8 @@ mod tests {
 		assert_eq!(chain.header_key.as_ref().unwrap().as_bytes(), &[2; 32]);
 		assert_ne!(chain.key.as_ref().unwrap().as_bytes(), &[1; 32]);
 		assert_eq!(chain.next_header_key.as_bytes(), &[3; 32]);
-		assert_eq!(chain.next_msg_num(), 1);
-		assert_eq!(chain.prev_msgs_cnt(), 0);
+		assert_eq!(chain.next_msg_num, 1);
+		assert_eq!(chain.prev_msgs_cnt, 0);
 
 		// Upgrade chain
 		chain.upgrade(
@@ -135,8 +131,8 @@ mod tests {
 		assert_eq!(chain.header_key.as_ref().unwrap().as_bytes(), &[3; 32]);
 		assert_eq!(chain.key.as_ref().unwrap().as_bytes(), &[4; 32]);
 		assert_eq!(chain.next_header_key.as_bytes(), &[5; 32]);
-		assert_eq!(chain.next_msg_num(), 0);
-		assert_eq!(chain.prev_msgs_cnt(), 1);
+		assert_eq!(chain.next_msg_num, 0);
+		assert_eq!(chain.prev_msgs_cnt, 1);
 
 		Ok(())
 	}
