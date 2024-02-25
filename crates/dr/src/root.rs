@@ -45,6 +45,13 @@ impl Root {
 
 		(msg_chain_key, header_key)
 	}
+
+	#[cfg(test)]
+	#[inline]
+	#[must_use]
+	pub(super) const fn key(&self) -> &super::key::Root {
+		&self.key
+	}
 }
 
 #[cfg(test)]

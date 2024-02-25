@@ -22,7 +22,7 @@ impl Private {
 
 	#[inline]
 	#[must_use]
-	pub(super) fn as_dalek(&self) -> &x25519_dalek::StaticSecret {
+	pub(super) const fn as_dalek(&self) -> &x25519_dalek::StaticSecret {
 		&self.0
 	}
 }

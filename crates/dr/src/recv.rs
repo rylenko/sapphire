@@ -80,6 +80,27 @@ impl Recv {
 		Err(super::error::DecryptHeader::KeysNotFit)
 	}
 
+	#[cfg(test)]
+	#[inline]
+	#[must_use]
+	pub(super) const fn header_key(&self) -> Option<&super::key::Header> {
+		self.header_key.as_ref()
+	}
+
+	#[cfg(test)]
+	#[inline]
+	#[must_use]
+	pub(super) const fn key(&self) -> Option<&super::key::MsgChain> {
+		self.key.as_ref()
+	}
+
+	#[cfg(test)]
+	#[inline]
+	#[must_use]
+	pub(super) const fn next_header_key(&self) -> &super::key::Header {
+		&self.next_header_key
+	}
+
 	/// See [pop] for more.
 	///
 	/// [pop]: super::skipped_msg_keys::SkippedMsgKeys::pop

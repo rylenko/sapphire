@@ -36,6 +36,27 @@ impl Send {
 			prev_msgs_cnt: 0,
 		}
 	}
+
+	#[cfg(test)]
+	#[inline]
+	#[must_use]
+	pub(super) const fn header_key(&self) -> Option<&super::key::Header> {
+		self.header_key.as_ref()
+	}
+
+	#[cfg(test)]
+	#[inline]
+	#[must_use]
+	pub(super) const fn key(&self) -> Option<&super::key::MsgChain> {
+		self.key.as_ref()
+	}
+
+	#[cfg(test)]
+	#[inline]
+	#[must_use]
+	pub(super) const fn next_header_key(&self) -> &super::key::Header {
+		&self.next_header_key
+	}
 }
 
 impl super::msg_chain::MsgChain for Send {

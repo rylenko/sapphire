@@ -5,7 +5,7 @@ pub(crate) struct MsgChain([u8; 32]);
 impl MsgChain {
 	#[inline]
 	#[must_use]
-	pub(crate) fn as_bytes(&self) -> &[u8; 32] {
+	pub(crate) const fn as_bytes(&self) -> &[u8; 32] {
 		&self.0
 	}
 

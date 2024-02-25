@@ -191,5 +191,64 @@ impl State {
 #[cfg(test)]
 mod tests {
 	#[test]
-	fn test_dh_ratchet() {}
+	fn test_dh_ratchet() {
+		const MAX_CNT: u32 = 5;
+		const ALICE_RECV_HEADER_KEY: [u8; 32] = [3; 32];
+		const ROOT_KEY: [u8; 32] = [1; 32];
+		const ALICE_SEND_HEADER_KEY: [u8; 32] = [2; 32];
+
+		// Create Alice and Bob
+		let mut bob = super::State::new_bob(
+			super::super::key::Private::random(),
+			ROOT_KEY.into(),
+			ALICE_RECV_HEADER_KEY.into(),
+			ALICE_SEND_HEADER_KEY.into(),
+			MAX_CNT,
+		);
+		let mut alice = super::State::new_alice(
+			super::super::key::Public::from(&bob.local_private_key),
+			ROOT_KEY.into(),
+			ALICE_SEND_HEADER_KEY.into(),
+			ALICE_RECV_HEADER_KEY.into(),
+			MAX_CNT,
+		);
+
+		// Bob's Diffie-Hellman ratchet
+		bob.dh_ratchet((&alice.local_private_key).into());
+
+		// Compare root chains. They are not equal because of Bob's root chain
+		// double KDF
+		assert_ne!(bob.root.key(), alice.root.key());
+
+		// Compare Bob's receiving and Alice's sending chains
+		assert_eq!(bob.recv.key(), alice.send.key());
+		assert_eq!(bob.recv.header_key(), alice.send.header_key());
+		assert_eq!(bob.recv.next_header_key(), alice.send.next_header_key());
+
+		// Compare Bob's sending and Alice's receiving chains. They are not
+		// equal because of Bob's root chain double KDF
+		assert_ne!(bob.send.key(), alice.recv.key());
+		assert_ne!(bob.send.header_key(), alice.recv.header_key());
+		assert_ne!(bob.send.next_header_key(), alice.recv.next_header_key());
+
+		// Alice's Diffie-Hellman ratchet
+		alice.dh_ratchet((&bob.local_private_key).into());
+
+		// Compare root chains. They are not equal because of Alice's root
+		// chain double KDF
+		assert_ne!(bob.root.key(), alice.root.key());
+
+		// Compare Bob's sending and Alice's receiving chains after Alice's
+		// ratchet
+		assert_eq!(bob.send.key(), alice.recv.key());
+		assert_eq!(bob.send.header_key(), alice.recv.header_key());
+		assert_eq!(bob.send.next_header_key(), alice.recv.next_header_key());
+
+		// Compare Bob's receiving and Alice's sending chains.
+		// Compare root chains. They are not equal because of Alice's root
+		// chain double KDF
+		assert_ne!(bob.recv.key(), alice.send.key());
+		assert_ne!(bob.recv.header_key(), alice.send.header_key());
+		assert_ne!(bob.recv.next_header_key(), alice.send.next_header_key());
+	}
 }
