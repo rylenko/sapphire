@@ -187,3 +187,9 @@ impl State {
 		self.send.upgrade(chain_key, next_header_key);
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	#[test]
+	fn test_dh_ratchet() {}
+}

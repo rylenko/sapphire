@@ -23,5 +23,3 @@ unsafe_code = "forbid"
 [[bin]]
 path = "_bin_mock/main.rs"
 name = "_bin_mock"
-
-# TODO: [[bench]]es

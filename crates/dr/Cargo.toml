@@ -1,3 +1,5 @@
+# TODO: bench
+
 [dependencies.chacha20poly1305]
 version = "0.10.1"
 
@@ -28,3 +30,6 @@ workspace = true
 name = "dr"
 version = "0.1.0"
 edition = "2021"
+
+[[test]]
+name = "usage"
