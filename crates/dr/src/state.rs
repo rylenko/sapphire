@@ -171,7 +171,7 @@ impl State {
 				&encrypted_header,
 			])?;
 
-		// Commit new KDF key
+		// Commit new KDF key because of successful encryption
 		self.send.commit_kdf(msg_chain_key);
 		Ok((encrypted_header, cipher))
 	}
