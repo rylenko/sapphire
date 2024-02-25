@@ -125,17 +125,21 @@ impl Recv {
 
 		// KDF many times to remember skipped message keys
 		while self.next_msg_num < until {
-			let (msg_key, header_key) = {
-				// To use mutable reference later to insert new skipped message
-				// key
-				let (msg_key, header_key) = self.kdf()?;
-				(msg_key, header_key.to_owned())
-			};
-			self.skipped_msg_keys.insert(
-				header_key,
-				self.next_msg_num - 1,
-				msg_key,
-			);
+			// KDF and commit
+			let (msg_chain_key, msg_key) = self.kdf()?;
+			self.commit_kdf(msg_chain_key);
+
+			// Insert new skipped message key
+			match self.header_key {
+				Some(ref header_key) => {
+					self.skipped_msg_keys.insert(
+						header_key.to_owned(),
+						self.next_msg_num - 1,
+						msg_key,
+					);
+				}
+				None => return Err(super::error::SkipMsgKeys::NoHeaderKey),
+			}
 		}
 
 		Ok(())
@@ -144,22 +148,19 @@ impl Recv {
 
 impl super::msg_chain::MsgChain for Recv {
 	type KdfError = super::error::RecvKdf;
-	type KdfOk<'a> = (super::key::Msg, &'a super::key::Header);
+	type KdfOk<'a> = (super::key::MsgChain, super::key::Msg);
 
-	fn kdf(&mut self) -> Result<Self::KdfOk<'_>, Self::KdfError> {
-		match self.key {
-			Some(ref key) => match self.header_key {
-				Some(ref header_key) => {
-					self.next_msg_num += 1;
+	fn commit_kdf(&mut self, key: super::key::MsgChain) {
+		debug_assert_eq!(
+			key,
+			self.kdf().expect("Must be Ok if we use this.").0
+		);
+		self.next_msg_num += 1;
+		self.key = Some(key);
+	}
 
-					let (new_key, msg_key) = Self::kdf_inner(key);
-					self.key = Some(new_key);
-					Ok((msg_key, header_key))
-				}
-				None => Err(Self::KdfError::NoHeaderKey),
-			},
-			None => Err(Self::KdfError::NoKey),
-		}
+	fn kdf(&self) -> Result<Self::KdfOk<'_>, Self::KdfError> {
+		self.key.as_ref().map(Self::kdf_inner).ok_or(Self::KdfError::NoKey)
 	}
 
 	fn upgrade(
@@ -255,17 +256,21 @@ mod tests {
 		// Create copy of chain
 		let mut chain_clone = create_chain();
 		upgrade(&mut chain_clone, [1; 32], [2; 32]);
-		let (msg_key_1, _) = chain_clone.kdf().unwrap();
-		let (msg_key_2, header_key) = chain_clone.kdf().unwrap();
+
+		// KDF cloned chain
+		let (msg_chain_key_1, msg_key_1) = chain_clone.kdf().unwrap();
+		chain_clone.commit_kdf(msg_chain_key_1);
+		let (msg_chain_key_2, msg_key_2) = chain_clone.kdf().unwrap();
+		chain_clone.commit_kdf(msg_chain_key_2);
 
 		// Encrypt headers
 		let encrypted_header_1 = super::super::cipher::encrypt(
-			header_key.as_bytes(),
+			chain_clone.header_key.as_ref().unwrap().as_bytes(),
 			header_1.as_bytes(),
 		)
 		.unwrap();
 		let encrypted_header_2 = super::super::cipher::encrypt(
-			header_key.as_bytes(),
+			chain_clone.header_key.as_ref().unwrap().as_bytes(),
 			header_2.as_bytes(),
 		)
 		.unwrap();
@@ -310,9 +315,12 @@ mod tests {
 		assert_eq!(chain.next_header_key.as_bytes(), &[2; 32]);
 
 		// Use KDF
-		chain.kdf().unwrap();
-		chain.kdf().unwrap();
-		chain.kdf().unwrap();
+		let (msg_chain_key_1, _) = chain.kdf().unwrap();
+		chain.commit_kdf(msg_chain_key_1);
+		let (msg_chain_key_2, _) = chain.kdf().unwrap();
+		chain.commit_kdf(msg_chain_key_2);
+		let (msg_chain_key_3, _) = chain.kdf().unwrap();
+		chain.commit_kdf(msg_chain_key_3);
 
 		// Check KDF is done
 		assert_eq!(chain.header_key, Some(old_next_header_key));

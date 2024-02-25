@@ -194,7 +194,6 @@ impl core::fmt::Display for PopSkippedMsgKey {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum RecvKdf {
-	NoHeaderKey,
 	NoKey,
 }
 
@@ -203,7 +202,7 @@ impl core::error::Error for RecvKdf {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::NoHeaderKey | Self::NoKey => None,
+			Self::NoKey => None,
 		}
 	}
 }
@@ -211,9 +210,6 @@ impl core::error::Error for RecvKdf {
 impl core::fmt::Display for RecvKdf {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::NoHeaderKey => {
-				write!(f, "There is no header key to forward chain.")
-			}
 			Self::NoKey => write!(f, "There is no base key to forward chain."),
 		}
 	}
@@ -250,8 +246,9 @@ impl core::fmt::Display for SendKdf {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum SkipMsgKeys {
-	TooMuch,
 	Kdf(RecvKdf),
+	NoHeaderKey,
+	TooMuch,
 }
 
 impl From<RecvKdf> for SkipMsgKeys {
@@ -267,8 +264,8 @@ impl core::error::Error for SkipMsgKeys {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::TooMuch => None,
 			Self::Kdf(ref e) => Some(e),
+			Self::NoHeaderKey | Self::TooMuch => None,
 		}
 	}
 }
@@ -276,11 +273,14 @@ impl core::error::Error for SkipMsgKeys {
 impl core::fmt::Display for SkipMsgKeys {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::TooMuch => {
-				write!(f, "Too much message keys to skip.")
-			}
 			Self::Kdf(..) => {
 				write!(f, "Failed to push forward receive chain.")
+			}
+			Self::NoHeaderKey => {
+				write!(f, "No header key to set.")
+			}
+			Self::TooMuch => {
+				write!(f, "Too much message keys to skip.")
 			}
 		}
 	}

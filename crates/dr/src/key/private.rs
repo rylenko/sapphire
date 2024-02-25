@@ -5,9 +5,10 @@
 pub struct Private(x25519_dalek::StaticSecret);
 
 impl Private {
+	/// Generates random private key.
 	#[inline]
 	#[must_use]
-	pub(crate) fn random() -> Self {
+	pub fn random() -> Self {
 		Self(x25519_dalek::StaticSecret::random())
 	}
 

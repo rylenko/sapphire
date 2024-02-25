@@ -115,13 +115,20 @@ impl State {
 			.skip_msg_keys(header.msg_num())
 			.map_err(super::error::Decrypt::SkipCurrChainMsgKeys)?;
 
-		// Get key and decrypt
-		let (msg_key, _header_key) = self.recv.kdf()?;
-		super::cipher::decrypt_auth(msg_key.as_bytes(), cipher, &[
-			auth,
-			encrypted_header,
-		])
-		.map_err(super::error::Decrypt::NewMsg)
+		// KDF receiving chain to get message key
+		let (msg_chain_key, msg_key) = self.recv.kdf()?;
+
+		// Decrypt
+		let plain =
+			super::cipher::decrypt_auth(msg_key.as_bytes(), cipher, &[
+				auth,
+				encrypted_header,
+			])
+			.map_err(super::error::Decrypt::NewMsg)?;
+
+		// Commit changes in receiving chain
+		self.recv.commit_kdf(msg_chain_key);
+		Ok(plain)
 	}
 
 	/// Encrypts `plain` text and authenticates it with concatenation of `auth`
@@ -143,7 +150,8 @@ impl State {
 		use {super::msg_chain::MsgChain as _, zerocopy::AsBytes as _};
 
 		// Move sending chain forward
-		let (msg_key, msg_num, header_key, prev_msgs_cnt) = self.send.kdf()?;
+		let (msg_chain_key, msg_key, msg_num, header_key, prev_msgs_cnt) =
+			self.send.kdf()?;
 
 		// Create header and encode it to bytes
 		let header = super::header::Header::new(
@@ -163,6 +171,8 @@ impl State {
 				&encrypted_header,
 			])?;
 
+		// Commit new KDF key
+		self.send.commit_kdf(msg_chain_key);
 		Ok((encrypted_header, cipher))
 	}
 

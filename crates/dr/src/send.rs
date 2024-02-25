@@ -61,25 +61,36 @@ impl Send {
 
 impl super::msg_chain::MsgChain for Send {
 	type KdfError = super::error::SendKdf;
-	type KdfOk<'a> = (super::key::Msg, u32, &'a super::key::Header, u32);
+	type KdfOk<'a> = (
+		super::key::MsgChain,
+		super::key::Msg,
+		u32,
+		&'a super::key::Header,
+		u32,
+	);
 
-	fn kdf(&mut self) -> Result<Self::KdfOk<'_>, Self::KdfError> {
+	fn commit_kdf(&mut self, key: super::key::MsgChain) {
+		debug_assert_eq!(
+			key,
+			self.kdf().expect("Must be Ok if we use this.").0
+		);
+		self.key = Some(key);
+		self.next_msg_num += 1;
+	}
+
+	fn kdf(&self) -> Result<Self::KdfOk<'_>, Self::KdfError> {
 		match self.key {
 			Some(ref key) => match self.header_key {
 				Some(ref header_key) => {
 					// Use inner KDF to get new root and message keys
 					let (new_key, msg_key) = Self::kdf_inner(key);
-					self.key = Some(new_key);
-
-					// Prepare output
-					let ret = (
+					Ok((
+						new_key,
 						msg_key,
 						self.next_msg_num,
 						header_key,
 						self.prev_msgs_cnt,
-					);
-					self.next_msg_num += 1;
-					Ok(ret)
+					))
 				}
 				None => Err(Self::KdfError::NoHeaderKey),
 			},
@@ -108,7 +119,7 @@ mod tests {
 	fn test_kdf_error() {
 		use super::super::msg_chain::MsgChain as _;
 
-		let mut chain = super::Send::new(
+		let chain = super::Send::new(
 			None,
 			None,
 			super::super::key::Header::from([1; 32]),
@@ -133,7 +144,8 @@ mod tests {
 		assert_eq!(chain.prev_msgs_cnt, 0);
 
 		// KDF
-		chain.kdf()?;
+		let (msg_chain_key, ..) = chain.kdf()?;
+		chain.commit_kdf(msg_chain_key);
 
 		// Check KDF is done
 		assert_eq!(chain.header_key.as_ref().unwrap().as_bytes(), &[2; 32]);

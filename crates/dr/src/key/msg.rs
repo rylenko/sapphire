@@ -1,6 +1,6 @@
 #[derive(Clone, Debug, Eq, Hash, PartialEq, zeroize::ZeroizeOnDrop)]
 #[repr(transparent)]
-pub struct Msg([u8; 32]);
+pub(crate) struct Msg([u8; 32]);
 
 impl Msg {
 	#[inline]
