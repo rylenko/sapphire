@@ -1,5 +1,6 @@
 mod utils;
 
+const ITERS: usize = 20;
 const ALICE_PLAIN: &[u8] = b"alice's plain";
 const ALICE_AUTH: &[u8] = b"alice's auth";
 const BOB_PLAIN: &[u8] = b"bob's plain";
@@ -12,7 +13,7 @@ fn test_decrypt_and_encrypt() {
 	// Because Bob does not know about Alice
 	assert!(bob.encrypt(BOB_PLAIN, BOB_AUTH).is_err());
 
-	for _ in 0..20 {
+	for _ in 0..ITERS {
 		// Encrypt from Alice's side
 		let (eh_1, c_1) = alice.encrypt(ALICE_PLAIN, ALICE_AUTH).unwrap();
 		assert!(bob
@@ -45,7 +46,7 @@ fn test_decrypt_and_encrypt() {
 fn test_double_sending() {
 	let (mut alice, mut bob) = utils::init();
 
-	for _ in 0..20 {
+	for _ in 0..ITERS {
 		// Encrypt from Alice's side
 		let (eh_1, c_1) = alice.encrypt(ALICE_PLAIN, ALICE_AUTH).unwrap();
 		assert_eq!(bob.decrypt(&eh_1, &c_1, ALICE_AUTH).unwrap(), ALICE_PLAIN);
