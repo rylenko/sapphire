@@ -52,9 +52,12 @@ impl Recv {
 	/// [`DecryptHdr`]: super::error::DecryptHdr
 	pub(super) fn decrypt_hdr(
 		&self,
-		encrypted_hdr_buf: &mut [u8],
+		encrypted_hdr_buf: &mut [u8; super::encrypted_hdr_buf::LEN],
 	) -> Result<(super::hdr::Hdr, bool), super::error::DecryptHdr> {
 		use zerocopy::FromBytes as _;
+
+		let mut done = false;
+		let mut need_upgrade = false;
 
 		// Try to decrypt with current header key
 		if let Some(ref hdr_key) = self.hdr_key {
@@ -65,29 +68,31 @@ impl Recv {
 			)
 			.is_ok()
 			{
-				let hdr = super::hdr::Hdr::ref_from(
-					&encrypted_hdr_buf[..encrypted_hdr_buf.len() - 32],
-				)
-				.ok_or(super::error::DecryptHdr::FromBytes)?;
-				return Ok((*hdr, false));
+				done = true;
 			}
 		}
 
 		// Try to decrypt with next header key
-		if super::cipher::decrypt(
-			self.next_hdr_key.as_bytes(),
-			encrypted_hdr_buf,
-			&[],
-		)
-		.is_ok()
-		{
-			let hdr = super::hdr::Hdr::ref_from(
-				&encrypted_hdr_buf[..encrypted_hdr_buf.len() - 32],
+		if !done
+			&& super::cipher::decrypt(
+				self.next_hdr_key.as_bytes(),
+				encrypted_hdr_buf,
+				&[],
 			)
-			.ok_or(super::error::DecryptHdr::FromBytes)?;
-			return Ok((*hdr, true));
+			.is_ok()
+		{
+			done = true;
+			need_upgrade = true;
 		}
 
+		if done {
+			let hdr = super::hdr::Hdr::ref_from(
+				&encrypted_hdr_buf
+					[..super::encrypted_hdr_buf::LEN_WITHOUT_MAC],
+			)
+			.ok_or(super::error::DecryptHdr::FromBytes)?;
+			return Ok((*hdr, need_upgrade));
+		}
 		Err(super::error::DecryptHdr::KeysNotFit)
 	}
 
@@ -118,7 +123,7 @@ impl Recv {
 	#[inline]
 	pub(super) fn pop_skipped_msg_key(
 		&mut self,
-		encrypted_hdr_buf: &mut [u8],
+		encrypted_hdr_buf: &mut [u8; super::encrypted_hdr_buf::LEN],
 	) -> Result<Option<super::key::Msg>, super::error::PopSkippedMsgKey> {
 		self.skipped_msg_keys.pop(encrypted_hdr_buf)
 	}
@@ -213,10 +218,12 @@ mod tests {
 		let mut chain = create_chain();
 		upgrade(&mut chain, [1; 32], [2; 32]);
 
-		// Create header and it's encryption bufer
+		// Create header and it's encryption buffer
 		let hdr = create_hdr(1);
-		let mut hdr_buf_1 = [hdr.as_bytes(), &[0; 32]].concat();
-		let mut hdr_buf_2 = [hdr.as_bytes(), &[0; 32]].concat();
+		let mut hdr_buf_1 = super::super::encrypted_hdr_buf::create();
+		hdr.write_to_prefix(&mut hdr_buf_1).unwrap();
+		let mut hdr_buf_2 = super::super::encrypted_hdr_buf::create();
+		hdr.write_to_prefix(&mut hdr_buf_2).unwrap();
 
 		// Encrypt header bytes with current header key
 		super::super::cipher::encrypt(
@@ -237,8 +244,8 @@ mod tests {
 		// Validate usage of keys
 		assert_eq!(chain.decrypt_hdr(&mut hdr_buf_1).unwrap(), (hdr, false));
 		assert_eq!(chain.decrypt_hdr(&mut hdr_buf_2).unwrap(), (hdr, true));
-		let mut bufer = [0; 150];
-		assert!(chain.decrypt_hdr(&mut bufer).is_err());
+		let mut buffer = super::super::encrypted_hdr_buf::create();
+		assert!(chain.decrypt_hdr(&mut buffer).is_err());
 	}
 
 	#[test]
@@ -253,14 +260,16 @@ mod tests {
 		chain.skip_msg_keys(2).unwrap();
 		assert_eq!(chain.next_msg_num, 2);
 
-		// Create header bufers
+		// Create header buffers
 		let (mut hdr_1_buf, mut hdr_2_buf) = {
 			let hdr_1 = create_hdr(0);
 			let hdr_2 = create_hdr(1);
-			(
-				[hdr_1.as_bytes(), &[0; 32]].concat(),
-				[hdr_2.as_bytes(), &[0; 32]].concat(),
-			)
+
+			let mut buf_1 = super::super::encrypted_hdr_buf::create();
+			hdr_1.write_to_prefix(&mut buf_1);
+			let mut buf_2 = super::super::encrypted_hdr_buf::create();
+			hdr_2.write_to_prefix(&mut buf_2);
+			(buf_1, buf_2)
 		};
 
 		// Create copy of chain

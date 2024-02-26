@@ -75,7 +75,7 @@ impl core::fmt::Display for Decrypt {
 				write!(f, "Failed to decrypt a skipped message.")
 			}
 			Self::SmallEncryptedHdrBuf => {
-				write!(f, "Encrypted header's bufer too small. Use `dr::create_encrypted_header_buf`.")
+				write!(f, "Encrypted header's buffer too small. Use `dr::create_encrypted_header_buf`.")
 			}
 		}
 	}
@@ -143,7 +143,7 @@ impl core::fmt::Display for Encrypt {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
 			Self::Buf(..) => {
-				write!(f, "Failed to encrypt a bufer.")
+				write!(f, "Failed to encrypt a buffer.")
 			}
 			Self::Hdr(..) => {
 				write!(f, "Failed to encrypt the header bytes.")
@@ -152,7 +152,7 @@ impl core::fmt::Display for Encrypt {
 				write!(f, "Failed to kdf sending chain.")
 			}
 			Self::SmallEncryptedHdrBuf => {
-				write!(f, "Encrypted header's bufer too small.")
+				write!(f, "Encrypted header's buffer too small.")
 			}
 		}
 	}

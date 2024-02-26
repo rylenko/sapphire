@@ -6,6 +6,7 @@ Double ratchet algorithm implementation for Sapphire.
 #![no_std]
 
 mod cipher;
+pub mod encrypted_hdr_buf;
 mod error;
 mod hdr;
 pub mod key;
@@ -15,6 +16,5 @@ mod root;
 mod send;
 mod skipped_msg_keys;
 mod state;
-mod utils;
 
-pub use {state::State, utils::create_encrypted_hdr_buf};
+pub use state::State;

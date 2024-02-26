@@ -7,7 +7,7 @@ const HKDF_SALT: &[u8] = &[0; HKDF_OUT_LEN];
 /// Decrypts `buf` using `key` and authenticates it using `auth`.
 ///
 /// Decrypts everything except the last 32 bytes. The last 32 bytes are
-/// occupied by MAC. Also the bufer will not be corrupted in case of errors.
+/// occupied by MAC. Also the buffer will not be corrupted in case of errors.
 pub(crate) fn decrypt(
 	key: &[u8],
 	buf: &mut [u8],
@@ -15,7 +15,7 @@ pub(crate) fn decrypt(
 ) -> Result<(), error::Decrypt> {
 	use chacha20::cipher::{KeyIvInit as _, StreamCipher as _};
 
-	// Check bufer length
+	// Check buffer length
 	if buf.len() <= 32 {
 		return Err(error::Decrypt::SmallBuf);
 	}
@@ -61,7 +61,7 @@ pub(crate) fn decrypt(
 /// Encrypts `buf` using `key` and authenticates it with `auth`.
 ///
 /// Encrypts everything except the last 32 bytes. The last 32 bytes are
-/// occupied by MAC. Also the bufer will not be corrupted in case of errors.
+/// occupied by MAC. Also the buffer will not be corrupted in case of errors.
 pub(crate) fn encrypt(
 	key: &[u8],
 	buf: &mut [u8],
@@ -69,7 +69,7 @@ pub(crate) fn encrypt(
 ) -> Result<(), error::Encrypt> {
 	use chacha20::cipher::{KeyIvInit as _, StreamCipher as _};
 
-	// Check bufer length
+	// Check buffer length
 	if buf.len() <= 32 {
 		return Err(error::Encrypt::SmallBuf);
 	}
@@ -88,7 +88,7 @@ pub(crate) fn encrypt(
 	)
 	.apply_keystream(&mut buf[..cipher_len]);
 
-	// Authenticate and copy MAC to bufer
+	// Authenticate and copy MAC to buffer
 	let mac = {
 		use hkdf::hmac::Mac;
 		// Create MAC using auth key
@@ -96,7 +96,7 @@ pub(crate) fn encrypt(
 			&hkdf_out[32..64],
 		)
 		.expect("Any size is good.");
-		// Update MAC with encrypted bufer and auth data
+		// Update MAC with encrypted buffer and auth data
 		mac.update(&buf[..cipher_len]);
 		for a in auth {
 			mac.update(a);
@@ -117,11 +117,11 @@ mod tests {
 
 	#[test]
 	fn test_decrypt_and_encrypt() {
-		// Test too small bufer
+		// Test too small buffer
 		let mut invalid_buf = [0; 32];
 		assert!(super::encrypt(KEY, &mut invalid_buf, AUTH).is_err());
 
-		// Clone and encrypt the bufer
+		// Clone and encrypt the buffer
 		let mut buf = BUF;
 		super::encrypt(KEY, &mut buf, AUTH).unwrap();
 

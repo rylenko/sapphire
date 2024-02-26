@@ -20,7 +20,7 @@ impl core::fmt::Display for Decrypt {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
 			Self::Auth => write!(f, "Failed to authenticate."),
-			Self::SmallBuf => write!(f, "Too small bufer."),
+			Self::SmallBuf => write!(f, "Too small buffer."),
 		}
 	}
 }
@@ -45,7 +45,7 @@ impl core::fmt::Display for Encrypt {
 	#[inline]
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::SmallBuf => write!(f, "Too small bufer."),
+			Self::SmallBuf => write!(f, "Too small buffer."),
 		}
 	}
 }

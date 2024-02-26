@@ -49,7 +49,7 @@ impl SkippedMsgKeys {
 	/// [`PopSkippedMsgKey`]: super::error::PopSkippedMsgKey
 	pub(super) fn pop(
 		&mut self,
-		encrypted_hdr_buf: &mut [u8],
+		encrypted_hdr_buf: &mut [u8; super::encrypted_hdr_buf::LEN],
 	) -> Result<Option<super::key::Msg>, super::error::PopSkippedMsgKey> {
 		use zerocopy::FromBytes as _;
 
@@ -70,7 +70,8 @@ impl SkippedMsgKeys {
 			{
 				// Extract message number from header bytes
 				let msg_num = super::hdr::Hdr::ref_from(
-					&encrypted_hdr_buf[..encrypted_hdr_buf.len() - 32],
+					&encrypted_hdr_buf
+						[..super::encrypted_hdr_buf::LEN_WITHOUT_MAC],
 				)
 				.ok_or(super::error::PopSkippedMsgKey::HdrFromBytes)?
 				.msg_num();

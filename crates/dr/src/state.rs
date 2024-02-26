@@ -75,6 +75,8 @@ impl State {
 	///
 	/// # Errors
 	///
+	/// May corrupt `encrypted_hdr_buf` on error.
+	///
 	/// See [`Decrypt`].
 	///
 	/// [`Decrypt`]: super::error::Decrypt
@@ -82,7 +84,7 @@ impl State {
 		&mut self,
 		buf: &mut [u8],
 		auth: &[u8],
-		encrypted_hdr_buf: &mut [u8],
+		encrypted_hdr_buf: &mut [u8; super::encrypted_hdr_buf::LEN],
 	) -> Result<(), super::error::Decrypt> {
 		use super::msg_chain::MsgChain as _;
 
@@ -97,31 +99,15 @@ impl State {
 			.map_err(super::error::Decrypt::SkippedMsg);
 		}
 
-		// TODO: Try to escape it.
+		// TODO: Try to escape this.
 		//
-		// We create a copy of the header because:
-		// 1. `decrypt_hdr` will decrypt bufer and we will not be able to
-		//    authenticate them.
-		// 2. We must restore the original bufer immediately after decrypting
-		//    `decrypt_hdr` to avoid data loss due to errors
-		if encrypted_hdr_buf.len() < super::utils::ENCRYPTED_HDR_BUF_LEN {
-			return Err(super::error::Decrypt::SmallEncryptedHdrBuf);
-		}
-		let mut encrypted_hdr_buf_copy =
-			super::utils::create_encrypted_hdr_buf();
-		encrypted_hdr_buf_copy.copy_from_slice(
-			&encrypted_hdr_buf[..super::utils::ENCRYPTED_HDR_BUF_LEN],
-		);
+		// We create a copy of the header because `decrypt_hdr` will decrypt
+		// buffer and we will not be able to authenticate him.
+		let encrypted_hdr_buf_copy = *encrypted_hdr_buf;
 
 		// Trying to decrypt the header with the receiving chain
 		let (hdr, need_dh_ratchet) =
 			self.recv.decrypt_hdr(encrypted_hdr_buf)?;
-
-		// Restore the original bufer immediately after decrypting
-		// `decrypt_hdr` to avoid data loss due to errors
-		encrypted_hdr_buf[..super::utils::ENCRYPTED_HDR_BUF_LEN]
-			.copy_from_slice(&encrypted_hdr_buf_copy);
-
 		if need_dh_ratchet {
 			// Skip current chain message keys and upgrade chains using DH
 			// ratchet
@@ -130,23 +116,18 @@ impl State {
 				.map_err(super::error::Decrypt::SkipOldChainMsgKeys)?;
 			self.dh_ratchet(hdr.public_key());
 		}
-
 		// Skip message keys to get current key
 		self.recv
 			.skip_msg_keys(hdr.msg_num())
 			.map_err(super::error::Decrypt::SkipCurrChainMsgKeys)?;
 
-		// KDF receiving chain to get message key
+		// KDF to get decryption key, decrypt and commit new chain key
 		let (msg_chain_key, msg_key) = self.recv.kdf()?;
-
-		// Decrypt
 		super::cipher::decrypt(msg_key.as_bytes(), buf, &[
 			auth,
 			&encrypted_hdr_buf_copy,
 		])
 		.map_err(super::error::Decrypt::NewMsg)?;
-
-		// Commit changes in receiving chain
 		self.recv.commit_kdf(msg_chain_key);
 		Ok(())
 	}
@@ -156,9 +137,11 @@ impl State {
 	/// `encrypted_hdr_buf` with encrypted bytes.
 	///
 	/// Encrypts everything except the last 32 bytes. The last 32 bytes are
-	/// occupied by MAC. Also bufers will not be corrupted in case of errors.
+	/// occupied by MAC.
 	///
 	/// # Errors
+	///
+	/// May corrupt `encrypted_hdr_buf` on error.
 	///
 	/// See [`Encrypt`].
 	///
@@ -167,7 +150,7 @@ impl State {
 		&mut self,
 		buf: &mut [u8],
 		auth: &[u8],
-		encrypted_hdr_buf: &mut [u8],
+		encrypted_hdr_buf: &mut [u8; super::encrypted_hdr_buf::LEN],
 	) -> Result<(), super::error::Encrypt> {
 		use {super::msg_chain::MsgChain as _, zerocopy::AsBytes as _};
 
@@ -183,24 +166,25 @@ impl State {
 		);
 		let hdr_bytes = hdr.as_bytes();
 
-		// Try to copy header bytes to it's encrypted bufer
-		if encrypted_hdr_buf.len() < hdr_bytes.len() {
-			return Err(super::error::Encrypt::SmallEncryptedHdrBuf);
-		}
+		// Copy header bytes to encrypted header buffer
+		debug_assert_eq!(
+			hdr_bytes.len(),
+			super::encrypted_hdr_buf::LEN_WITHOUT_MAC
+		);
 		encrypted_hdr_buf[..hdr_bytes.len()].copy_from_slice(hdr_bytes);
-
-		// Encrypt header's bytes to bufer
+		// Encrypt header bytes buffer
 		super::cipher::encrypt(hdr_key.as_bytes(), encrypted_hdr_buf, &[])
 			.map_err(super::error::Encrypt::Hdr)?;
+
 		// Encrypt plain data with encrypted header authentication
 		super::cipher::encrypt(msg_key.as_bytes(), buf, &[
 			auth,
 			encrypted_hdr_buf,
 		])
 		.map_err(super::error::Encrypt::Buf)?;
-
 		// Commit new KDF key because of successful encryption
 		self.send.commit_kdf(msg_chain_key);
+
 		Ok(())
 	}
 
