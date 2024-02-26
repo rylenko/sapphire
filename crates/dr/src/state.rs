@@ -161,15 +161,15 @@ impl State {
 		);
 
 		// Encrypt header's bytes
-		let encrypted_header =
-			super::cipher::encrypt(header_key.as_bytes(), header.as_bytes())?;
+		let encrypted_header = header.as_bytes_mut();
+		super::cipher::encrypt(header_key.as_bytes(), encrypted_header);
 
 		// Encrypt plain data with encrypted header authentication
 		let cipher =
 			super::cipher::encrypt_auth(msg_key.as_bytes(), plain, &[
 				auth,
 				&encrypted_header,
-			])?;
+			]);
 
 		// Commit new KDF key because of successful encryption
 		self.send.commit_kdf(msg_chain_key);

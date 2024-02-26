@@ -1,0 +1,5 @@
+#!/bin/sh
+
+cloc --md --exclude-dir=.git,.github,target ./* \
+	| tail -n +4 \
+	> CLOC.md

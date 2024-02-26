@@ -8,11 +8,8 @@ const HKDF_OUT_SIZE: usize = 56;
 const HKDF_SALT: &[u8] = &[0; HKDF_OUT_SIZE];
 
 /// Decrpypts bytes `cipher` using `key`.
-pub(crate) fn decrypt(
-	key: &[u8],
-	cipher: &[u8],
-) -> Result<alloc::vec::Vec<u8>, error::Decrypt> {
-	use chacha20poly1305::{aead::Aead as _, KeyInit as _};
+pub(crate) fn decrypt(key: &[u8], buff: &mut [u8]) {
+	use chacha20::cipher::{KeyIvInit as _, StreamCipher as _};
 
 	// Get key and nonce via HKDF. [..32] is key and [32..] is nonce
 	let mut hkdf_out = zeroize::Zeroizing::new([0; HKDF_OUT_SIZE]);
@@ -21,28 +18,19 @@ pub(crate) fn decrypt(
 		.expect("`HKDF_OUT_SIZE` must be a good length.");
 
 	// Decrypt plain text with encryption key
-	let plain =
-		chacha20poly1305::XChaCha20Poly1305::new((&hkdf_out[..32]).into())
-			.decrypt((&hkdf_out[32..]).into(), cipher)?;
-	Ok(plain)
+	chacha20::XChaCha20::new((&hkdf_out[..32]).into(), (&hkdf_out[32..]).into())
+		.apply_keystream(&mut buff);
+	Ok(())
 }
 
-/// Decrypts `cipher` using `key` and authentication data `auth`.
+/// Decrypts `buff` using `key` and checks `mac` using `auth`.
 pub(crate) fn decrypt_auth(
 	key: &[u8],
-	cipher: &[u8],
+	buff: &mut [u8],
 	auth: &[&[u8]],
-) -> Result<alloc::vec::Vec<u8>, error::DecryptAuth> {
-	use chacha20poly1305::{aead::Aead as _, KeyInit as _};
-
-	// Get cipher's length without HMAC
-	if cipher.len() < 32 {
-		return Err(error::DecryptAuth::NoHmac);
-	}
-
-	// Split cipher into encrypted_plain and hmac
-	let encrypted_plain = &cipher[..cipher.len() - 32];
-	let hmac_expected = &cipher[cipher.len() - 32..];
+	mac: &[u8; 32],
+) -> Result<(), error::DecryptAuth> {
+	use chacha20::cipher::{KeyIvInit as _, StreamCipher as _};
 
 	// Get cipher key, auth key and nonce via HKDF. [..32] is
 	// encryption key, [32..64] is auth key and [64..] is nonce.
@@ -52,44 +40,41 @@ pub(crate) fn decrypt_auth(
 		.expect("`AUTH_HKDF_OUT_SIZE` must be a good length.");
 
 	// Calculate HMAC using received cipher and auth data
-	let hmac_got: [u8; 32] = {
+	let mac_got: [u8; 32] = {
 		use hkdf::hmac::Mac;
 
 		// Create HMAC using auth key
-		let mut hmac =
+		let mut mac =
 			<hkdf::hmac::Hmac<sha2::Sha256> as Mac>::new_from_slice(
 				&hkdf_out[32..64],
 			)
 			.expect("Any size is good.");
 
 		// Update HMAC with cipher and auth data
-		hmac.update(encrypted_plain);
+		mac.update(buff);
+		mac.update(&hkdf_out[64..]);
 		for a in auth {
-			hmac.update(a);
+			mac.update(a);
 		}
 
 		// Finalize HMAC and convert it to bytes
-		hmac.finalize().into_bytes().into()
+		mac.finalize().into_bytes().into()
 	};
 
 	// Compare HMACs
-	if hmac_got != hmac_expected {
+	if mac_got != mac {
 		return Err(error::DecryptAuth::Auth);
 	}
 
 	// Decrypt plain text using cipher key and nonce
-	let plain =
-		chacha20poly1305::XChaCha20Poly1305::new((&hkdf_out[..32]).into())
-			.decrypt((&hkdf_out[64..]).into(), encrypted_plain)?;
-	Ok(plain)
+	chacha20::XChaCha20::new((&hkdf_out[..32]).into(), (&hkdf_out[64..]).into())
+		.apply_keystream(&mut buff);
+	Ok(())
 }
 
-/// Encrypts bytes `plain` using `key`.
-pub(crate) fn encrypt(
-	key: &[u8],
-	plain: &[u8],
-) -> Result<alloc::vec::Vec<u8>, error::Encrypt> {
-	use chacha20poly1305::{aead::Aead as _, KeyInit as _};
+/// Encrypts `buff` using `key`.
+pub(crate) fn encrypt(key: &[u8], buff: &mut [u8]) {
+	use chacha20::cipher::{KeyIvInit as _, StreamCipher as _};
 
 	// Get key and nonce via HKDF. [..32] is key and [32..] is nonce.
 	let mut hkdf_out = zeroize::Zeroizing::new([0; HKDF_OUT_SIZE]);
@@ -98,19 +83,22 @@ pub(crate) fn encrypt(
 		.expect("`HKDF_OUT_SIZE` must be a good length.");
 
 	// Encrypt plain text with encryption key
-	let cipher =
-		chacha20poly1305::XChaCha20Poly1305::new((&hkdf_out[..32]).into())
-			.encrypt((&hkdf_out[32..]).into(), plain)?;
-	Ok(cipher)
+	chacha20::XChaCha20::new((&hkdf_out[..32]).into(), (&hkdf_out[32..]).into())
+		.apply_keystream(&mut buff);
+	Ok(())
 }
 
-/// Encrypts `plain` using `key` and authentication data `auth`.
+/// Encrypts `buff` using `key` and authenticates it with `auth`.
+///
+/// # Return
+///
+/// Message authentication code.
 pub(crate) fn encrypt_auth(
 	key: &[u8],
-	plain: &[u8],
+	buff: &mut [u8],
 	auth: &[&[u8]],
-) -> Result<alloc::vec::Vec<u8>, error::EncryptAuth> {
-	use chacha20poly1305::{aead::Aead as _, KeyInit as _};
+) ->[u8; 32] {
+	use chacha20::cipher::{KeyIvInit as _, StreamCipher as _};
 
 	// Get cipher key, auth key and nonce via HKDF. [..32] is
 	// encryption key, [32..64] is auth key and [64..] is nonce.
@@ -119,35 +107,32 @@ pub(crate) fn encrypt_auth(
 		.expand(AUTH_HKDF_INFO, hkdf_out.as_mut())
 		.expect("`AUTH_HKDF_OUT_SIZE` must be a good length.");
 
-	// Encrypt plain text using encryption key and nonce
-	let mut encrypted_plain =
-		chacha20poly1305::XChaCha20Poly1305::new((&hkdf_out[..32]).into())
-			.encrypt((&hkdf_out[64..]).into(), plain)?;
+	// Encrypt plain text to buffer using encryption key and nonce
+	chacha20::XChaCha20::new((&hkdf_out[..32]).into(), (&hkdf_out[64..]).into())
+		.apply_keystream(buff);
 
 	// Authenticate
-	let hmac: [u8; 32] = {
+	let mac: [u8; 32] = {
 		use hkdf::hmac::Mac;
 
 		// Create HMAC using auth key
-		let mut hmac =
+		let mut mac =
 			<hkdf::hmac::Hmac<sha2::Sha256> as Mac>::new_from_slice(
 				&hkdf_out[32..64],
 			)
 			.expect("Any size is good.");
 
-		// Update HMAC with cipher and auth data
-		hmac.update(&encrypted_plain);
+		// Update HMAC with cipher, nonce and auth data
+		mac.update(&buff);
+		mac.update(&hkdf_out[64..]);
 		for a in auth {
-			hmac.update(a);
+			mac.update(a);
 		}
 
 		// Finalize HMAC and convert it to bytes
-		hmac.finalize().into_bytes().into()
+		mac.finalize().into_bytes().into()
 	};
-
-	// Append authenticated HMAC to end of cipher text
-	encrypted_plain.extend(hmac);
-	Ok(encrypted_plain)
+	Ok(mac)
 }
 
 #[cfg(test)]
@@ -158,25 +143,29 @@ mod tests {
 
 	#[test]
 	fn test_decrypt_and_encrypt() {
-		let cipher = super::encrypt(KEY, PLAIN).unwrap();
+		let mut buff = PLAIN.to_owned();
+		super::encrypt(KEY, &mut buff);
+		let mut cipher = buff.clone();
 
 		// Test decryption of cipher
-		assert_ne!(cipher, PLAIN);
-		assert!(super::decrypt(b"another key", &cipher).is_err());
-		assert_eq!(super::decrypt(KEY, &cipher).unwrap(), PLAIN);
+		assert_ne!(buff, PLAIN);
+		assert_ne!(super::decrypt(b"another key", &mut buff), PLAIN);
+		assert_eq!(super::decrypt(KEY, &mut cipher), PLAIN);
 	}
 
 	#[test]
 	fn test_decrypt_auth_and_encrypt_auth() {
-		let cipher = super::encrypt_auth(KEY, PLAIN, AUTH).unwrap();
+		let mut buff = PLAIN.to_owned();
+		let mac = super::encrypt_auth(KEY, &mut buff, AUTH);
+		let mut cipher = buff.clone();
 
-		assert_ne!(cipher, PLAIN);
-		assert!(super::decrypt_auth(b"another key", &cipher, AUTH).is_err());
-		assert!(super::decrypt_auth(KEY, &cipher, &[
+		assert_ne!(buff, PLAIN);
+		assert_ne!(super::decrypt_auth(b"another key", &mut buff, AUTH, &mac).unwrap(), PLAIN);
+		assert!(super::decrypt_auth(KEY, &mut cipher, &[
 			b"encrypted-header",
 			b"invalid-user-auth-data"
-		])
+		], &mac)
 		.is_err());
-		assert_eq!(super::decrypt_auth(KEY, &cipher, AUTH).unwrap(), PLAIN);
+		assert_eq!(super::decrypt_auth(KEY, &mut cipher, AUTH, &mac).unwrap(), PLAIN);
 	}
 }
