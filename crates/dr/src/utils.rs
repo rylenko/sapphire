@@ -1,10 +1,9 @@
-pub(crate) const ENCRYPTED_HEADER_BUFF_LEN: usize =
-	core::mem::size_of::<super::header::Header>() + 32;
+pub(crate) const ENCRYPTED_HDR_BUF_LEN: usize =
+	core::mem::size_of::<super::hdr::Hdr>() + 32;
 
-/// Creates empty buffer for encrypted header.
+/// Creates empty bufer for encrypted header.
 #[inline]
 #[must_use]
-pub const fn create_encrypted_header_buff() -> [u8; ENCRYPTED_HEADER_BUFF_LEN]
-{
-	[0; ENCRYPTED_HEADER_BUFF_LEN]
+pub const fn create_encrypted_hdr_buf() -> [u8; ENCRYPTED_HDR_BUF_LEN] {
+	[0; ENCRYPTED_HDR_BUF_LEN]
 }

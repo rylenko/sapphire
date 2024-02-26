@@ -3,9 +3,9 @@
 /// [`Hash`]: core::hash::Hash
 #[derive(Clone, Debug, Eq, Hash, PartialEq, zeroize::ZeroizeOnDrop)]
 #[repr(transparent)]
-pub struct Header([u8; 32]);
+pub struct Hdr([u8; 32]);
 
-impl Header {
+impl Hdr {
 	#[inline]
 	#[must_use]
 	pub(crate) const fn as_bytes(&self) -> &[u8; 32] {
@@ -18,7 +18,7 @@ impl Header {
 	}
 }
 
-impl From<[u8; 32]> for Header {
+impl From<[u8; 32]> for Hdr {
 	#[inline]
 	#[must_use]
 	fn from(a: [u8; 32]) -> Self {

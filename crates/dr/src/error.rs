@@ -1,21 +1,21 @@
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Decrypt {
-	Header(DecryptHeader),
+	Hdr(DecryptHdr),
 	NewMsg(super::cipher::error::Decrypt),
 	PopSkippedMsgKey(PopSkippedMsgKey),
 	RecvChainKdf(RecvKdf),
 	SkipCurrChainMsgKeys(SkipMsgKeys),
 	SkipOldChainMsgKeys(SkipMsgKeys),
 	SkippedMsg(super::cipher::error::Decrypt),
-	SmallEncryptedHeaderBuff,
+	SmallEncryptedHdrBuf,
 }
 
-impl From<DecryptHeader> for Decrypt {
+impl From<DecryptHdr> for Decrypt {
 	#[inline]
 	#[must_use]
-	fn from(e: DecryptHeader) -> Self {
-		Self::Header(e)
+	fn from(e: DecryptHdr) -> Self {
+		Self::Hdr(e)
 	}
 }
 
@@ -39,13 +39,13 @@ impl core::error::Error for Decrypt {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::Header(ref e) => Some(e),
+			Self::Hdr(ref e) => Some(e),
 			Self::NewMsg(ref e) | Self::SkippedMsg(ref e) => Some(e),
 			Self::PopSkippedMsgKey(ref e) => Some(e),
 			Self::RecvChainKdf(ref e) => Some(e),
 			Self::SkipCurrChainMsgKeys(ref e)
 			| Self::SkipOldChainMsgKeys(ref e) => Some(e),
-			Self::SmallEncryptedHeaderBuff => None,
+			Self::SmallEncryptedHdrBuf => None,
 		}
 	}
 }
@@ -53,7 +53,7 @@ impl core::error::Error for Decrypt {
 impl core::fmt::Display for Decrypt {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::Header(..) => {
+			Self::Hdr(..) => {
 				write!(f, "Failed to decrypt the header.")
 			}
 			Self::NewMsg(..) => {
@@ -74,8 +74,8 @@ impl core::fmt::Display for Decrypt {
 			Self::SkippedMsg(..) => {
 				write!(f, "Failed to decrypt a skipped message.")
 			}
-			Self::SmallEncryptedHeaderBuff => {
-				write!(f, "Encrypted header's buffer too small. Use `dr::create_encrypted_header_buff`.")
+			Self::SmallEncryptedHdrBuf => {
+				write!(f, "Encrypted header's bufer too small. Use `dr::create_encrypted_header_buf`.")
 			}
 		}
 	}
@@ -83,12 +83,12 @@ impl core::fmt::Display for Decrypt {
 
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum DecryptHeader {
+pub enum DecryptHdr {
 	FromBytes,
 	KeysNotFit,
 }
 
-impl core::error::Error for DecryptHeader {
+impl core::error::Error for DecryptHdr {
 	#[inline]
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
@@ -98,7 +98,7 @@ impl core::error::Error for DecryptHeader {
 	}
 }
 
-impl core::fmt::Display for DecryptHeader {
+impl core::fmt::Display for DecryptHdr {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
 			Self::FromBytes => {
@@ -114,10 +114,10 @@ impl core::fmt::Display for DecryptHeader {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Encrypt {
-	Buff(super::cipher::error::Encrypt),
-	Header(super::cipher::error::Encrypt),
+	Buf(super::cipher::error::Encrypt),
+	Hdr(super::cipher::error::Encrypt),
 	SendChainKdf(SendKdf),
-	SmallEncryptedHeaderBuff,
+	SmallEncryptedHdrBuf,
 }
 
 impl From<SendKdf> for Encrypt {
@@ -132,9 +132,9 @@ impl core::error::Error for Encrypt {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::Buff(ref e) | Self::Header(ref e) => Some(e),
+			Self::Buf(ref e) | Self::Hdr(ref e) => Some(e),
 			Self::SendChainKdf(e) => Some(e),
-			Self::SmallEncryptedHeaderBuff => None,
+			Self::SmallEncryptedHdrBuf => None,
 		}
 	}
 }
@@ -142,17 +142,17 @@ impl core::error::Error for Encrypt {
 impl core::fmt::Display for Encrypt {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::Buff(..) => {
-				write!(f, "Failed to encrypt a buffer.")
+			Self::Buf(..) => {
+				write!(f, "Failed to encrypt a bufer.")
 			}
-			Self::Header(..) => {
+			Self::Hdr(..) => {
 				write!(f, "Failed to encrypt the header bytes.")
 			}
 			Self::SendChainKdf(..) => {
 				write!(f, "Failed to kdf sending chain.")
 			}
-			Self::SmallEncryptedHeaderBuff => {
-				write!(f, "Encrypted header's buffer too small.")
+			Self::SmallEncryptedHdrBuf => {
+				write!(f, "Encrypted header's bufer too small.")
 			}
 		}
 	}
@@ -161,7 +161,7 @@ impl core::fmt::Display for Encrypt {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum PopSkippedMsgKey {
-	HeaderFromBytes,
+	HdrFromBytes,
 }
 
 impl core::error::Error for PopSkippedMsgKey {
@@ -169,7 +169,7 @@ impl core::error::Error for PopSkippedMsgKey {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::HeaderFromBytes => None,
+			Self::HdrFromBytes => None,
 		}
 	}
 }
@@ -177,7 +177,7 @@ impl core::error::Error for PopSkippedMsgKey {
 impl core::fmt::Display for PopSkippedMsgKey {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::HeaderFromBytes => {
+			Self::HdrFromBytes => {
 				write!(f, "Failed to convert bytes to header.")
 			}
 		}
@@ -211,7 +211,7 @@ impl core::fmt::Display for RecvKdf {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum SendKdf {
-	NoHeaderKey,
+	NoHdrKey,
 	NoKey,
 }
 
@@ -220,7 +220,7 @@ impl core::error::Error for SendKdf {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::NoHeaderKey | Self::NoKey => None,
+			Self::NoHdrKey | Self::NoKey => None,
 		}
 	}
 }
@@ -228,7 +228,7 @@ impl core::error::Error for SendKdf {
 impl core::fmt::Display for SendKdf {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::NoHeaderKey => {
+			Self::NoHdrKey => {
 				write!(f, "There is no header key to forward chain.")
 			}
 			Self::NoKey => write!(f, "There is no base key to forward chain."),
@@ -240,7 +240,7 @@ impl core::fmt::Display for SendKdf {
 #[non_exhaustive]
 pub enum SkipMsgKeys {
 	Kdf(RecvKdf),
-	NoHeaderKey,
+	NoHdrKey,
 	TooMuch,
 }
 
@@ -258,7 +258,7 @@ impl core::error::Error for SkipMsgKeys {
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
 			Self::Kdf(ref e) => Some(e),
-			Self::NoHeaderKey | Self::TooMuch => None,
+			Self::NoHdrKey | Self::TooMuch => None,
 		}
 	}
 }
@@ -269,7 +269,7 @@ impl core::fmt::Display for SkipMsgKeys {
 			Self::Kdf(..) => {
 				write!(f, "Failed to push forward receive chain.")
 			}
-			Self::NoHeaderKey => {
+			Self::NoHdrKey => {
 				write!(f, "No header key to set.")
 			}
 			Self::TooMuch => {

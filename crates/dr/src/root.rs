@@ -23,7 +23,7 @@ impl Root {
 	pub(super) fn kdf(
 		&mut self,
 		input: &super::key::SharedSecret,
-	) -> (super::key::MsgChain, super::key::Header) {
+	) -> (super::key::MsgChain, super::key::Hdr) {
 		const HKDF_OUT_SIZE: usize = 96;
 		const HKDF_INFO: &[u8] = b"root_kdf_info";
 
@@ -40,10 +40,10 @@ impl Root {
 		self.key.copy_from_slice(&hkdf_out[..32]);
 		let mut msg_chain_key = super::key::MsgChain::from([0; 32]);
 		msg_chain_key.copy_from_slice(&hkdf_out[32..64]);
-		let mut header_key = super::key::Header::from([0; 32]);
-		header_key.copy_from_slice(&hkdf_out[64..]);
+		let mut hdr_key = super::key::Hdr::from([0; 32]);
+		hdr_key.copy_from_slice(&hkdf_out[64..]);
 
-		(msg_chain_key, header_key)
+		(msg_chain_key, hdr_key)
 	}
 
 	#[cfg(test)]
@@ -66,7 +66,7 @@ mod tests {
 		let remote_public_key = super::super::key::Public::from([222; 32]);
 		let local_private_key = super::super::key::Private::random();
 
-		// Calculate Diffie-Hellman input and use KDF
+		// Calculate DH input and use KDF
 		chain.kdf(&local_private_key.dh(remote_public_key));
 
 		// TODO: find new key value with third-party resource

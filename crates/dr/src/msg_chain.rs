@@ -44,10 +44,10 @@ pub(super) trait MsgChain {
 		)
 	}
 
-	/// Upgrades the chain after Diffie-Hellman ratchet.
+	/// Upgrades the chain after DH ratchet.
 	fn upgrade(
 		&mut self,
 		new_key: super::key::MsgChain,
-		new_next_header_key: super::key::Header,
+		new_next_hdr_key: super::key::Hdr,
 	);
 }

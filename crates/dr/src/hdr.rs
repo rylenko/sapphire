@@ -14,13 +14,13 @@
 	zerocopy::FromZeroes,
 )]
 #[repr(packed)]
-pub(super) struct Header {
+pub(super) struct Hdr {
 	public_key: super::key::Public,
 	msg_num: u32,
 	prev_send_msgs_cnt: u32,
 }
 
-impl Header {
+impl Hdr {
 	#[inline]
 	#[must_use]
 	pub(super) const fn new(

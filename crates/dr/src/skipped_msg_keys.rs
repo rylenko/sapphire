@@ -1,7 +1,7 @@
 /// Keys are not pair of header key and message number because of
 /// reference to header key in getting function
 pub(super) type Inner = hashbrown::HashMap<
-	super::key::Header,
+	super::key::Hdr,
 	hashbrown::HashMap<u32, super::key::Msg>,
 >;
 
@@ -28,11 +28,11 @@ impl SkippedMsgKeys {
 	/// Inserts new entry.
 	pub(super) fn insert(
 		&mut self,
-		header_key: super::key::Header,
+		hdr_key: super::key::Hdr,
 		msg_num: u32,
 		msg_key: super::key::Msg,
 	) {
-		let values = self.0.entry(header_key).or_default();
+		let values = self.0.entry(hdr_key).or_default();
 		values.insert(msg_num, msg_key);
 	}
 
@@ -49,36 +49,36 @@ impl SkippedMsgKeys {
 	/// [`PopSkippedMsgKey`]: super::error::PopSkippedMsgKey
 	pub(super) fn pop(
 		&mut self,
-		encrypted_header_buff: &mut [u8],
+		encrypted_hdr_buf: &mut [u8],
 	) -> Result<Option<super::key::Msg>, super::error::PopSkippedMsgKey> {
 		use zerocopy::FromBytes as _;
 
 		let mut ret = None;
 		// The header key will be located here, which will no longer contain
 		// skipped message keys
-		let mut empty_header_key = None;
+		let mut empty_hdr_key = None;
 
 		// Iterate over elements
-		for (header_key, values) in &mut self.0 {
+		for (hdr_key, values) in &mut self.0 {
 			// Try to decrypt header with iterated header key
 			if super::cipher::decrypt(
-				header_key.as_bytes(),
-				encrypted_header_buff,
+				hdr_key.as_bytes(),
+				encrypted_hdr_buf,
 				&[],
 			)
 			.is_ok()
 			{
 				// Extract message number from header bytes
-				let msg_num = super::header::Header::ref_from(
-					&encrypted_header_buff[..encrypted_header_buff.len() - 32],
+				let msg_num = super::hdr::Hdr::ref_from(
+					&encrypted_hdr_buf[..encrypted_hdr_buf.len() - 32],
 				)
-				.ok_or(super::error::PopSkippedMsgKey::HeaderFromBytes)?
+				.ok_or(super::error::PopSkippedMsgKey::HdrFromBytes)?
 				.msg_num();
 
 				// Try to remove message number to get message key
 				if let Some(msg_key) = values.remove(&msg_num) {
 					if values.is_empty() {
-						empty_header_key = Some(header_key.clone());
+						empty_hdr_key = Some(hdr_key.clone());
 					}
 					ret = Some(msg_key);
 				};
@@ -90,8 +90,8 @@ impl SkippedMsgKeys {
 		}
 
 		// Remove header key with no skipped message keys
-		if let Some(ref header_key) = empty_header_key {
-			self.0.remove(header_key).expect("We had a reference to it.");
+		if let Some(ref hdr_key) = empty_hdr_key {
+			self.0.remove(hdr_key).expect("We had a reference to it.");
 		}
 		Ok(ret)
 	}
@@ -102,16 +102,16 @@ mod tests {
 	#[test]
 	fn test_insert() {
 		// Create test data
-		let header_key = crate::key::Header::from([1; 32]);
+		let hdr_key = crate::key::Hdr::from([1; 32]);
 		let msg_key = crate::key::Msg::from([2; 32]);
 
 		// Insert
 		let mut a = super::SkippedMsgKeys::new();
-		a.insert(header_key.clone(), 100, msg_key.clone());
+		a.insert(hdr_key.clone(), 100, msg_key.clone());
 
 		// Get
 		let got_msg_key =
-			a.0.get(&header_key).unwrap().get(&100).unwrap().as_bytes();
+			a.0.get(&hdr_key).unwrap().get(&100).unwrap().as_bytes();
 		assert_eq!(got_msg_key, &[2; 32]);
 	}
 
