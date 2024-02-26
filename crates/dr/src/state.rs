@@ -102,7 +102,7 @@ impl State {
 		// TODO: Try to escape this.
 		//
 		// We create a copy of the header because `decrypt_hdr` will decrypt
-		// buffer and we will not be able to authenticate him.
+		// buffer and we will not be able to authenticate it
 		let encrypted_hdr_buf_copy = *encrypted_hdr_buf;
 
 		// Trying to decrypt the header with the receiving chain
