@@ -2,11 +2,14 @@
 
 all: clippy fmt test
 
+bench:
+	@cargo bench --workspace --verbose
+
 check-fmt:
 	@cargo fmt --all --check
 
 clippy:
-	@cargo clippy --all-features --tests --workspace -- -D warnings
+	@cargo clippy --all-features --all-targets --tests --workspace -- -D warnings
 
 fmt:
 	@cargo fmt --all

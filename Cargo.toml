@@ -17,8 +17,8 @@ style = "deny"
 suspicious = "deny"
 
 [workspace.lints.rust]
-missing_docs = "forbid"
-unsafe_code = "forbid"
+missing_docs = "deny"
+unsafe_code = "deny"
 
 [[bin]]
 path = "_bin_mock/main.rs"
