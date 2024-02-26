@@ -49,7 +49,7 @@ impl SkippedMsgKeys {
 	/// [`PopSkippedMsgKey`]: super::error::PopSkippedMsgKey
 	pub(super) fn pop(
 		&mut self,
-		encrypted_header: &[u8],
+		encrypted_header_buff: &mut [u8],
 	) -> Result<Option<super::key::Msg>, super::error::PopSkippedMsgKey> {
 		use zerocopy::FromBytes as _;
 
@@ -61,13 +61,19 @@ impl SkippedMsgKeys {
 		// Iterate over elements
 		for (header_key, values) in &mut self.0 {
 			// Try to decrypt header with iterated header key
-			if let Ok(bytes) =
-				super::cipher::decrypt(header_key.as_bytes(), encrypted_header)
+			if super::cipher::decrypt(
+				header_key.as_bytes(),
+				encrypted_header_buff,
+				&[],
+			)
+			.is_ok()
 			{
 				// Extract message number from header bytes
-				let msg_num = super::header::Header::ref_from(&bytes)
-					.ok_or(super::error::PopSkippedMsgKey::DecodeHeader)?
-					.msg_num();
+				let msg_num = super::header::Header::ref_from(
+					&encrypted_header_buff[..encrypted_header_buff.len() - 32],
+				)
+				.ok_or(super::error::PopSkippedMsgKey::HeaderFromBytes)?
+				.msg_num();
 
 				// Try to remove message number to get message key
 				if let Some(msg_key) = values.remove(&msg_num) {
@@ -87,7 +93,6 @@ impl SkippedMsgKeys {
 		if let Some(ref header_key) = empty_header_key {
 			self.0.remove(header_key).expect("We had a reference to it.");
 		}
-
 		Ok(ret)
 	}
 }

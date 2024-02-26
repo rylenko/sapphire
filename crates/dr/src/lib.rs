@@ -5,8 +5,6 @@ Double ratchet algorithm implementation for Sapphire.
 #![feature(error_in_core)]
 #![no_std]
 
-extern crate alloc;
-
 mod cipher;
 mod error;
 mod header;
@@ -17,5 +15,6 @@ mod root;
 mod send;
 mod skipped_msg_keys;
 mod state;
+mod utils;
 
-pub use state::State;
+pub use {state::State, utils::create_encrypted_header_buff};

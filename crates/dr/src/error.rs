@@ -2,12 +2,13 @@
 #[non_exhaustive]
 pub enum Decrypt {
 	Header(DecryptHeader),
-	NewMsg(super::cipher::error::DecryptAuth),
+	NewMsg(super::cipher::error::Decrypt),
 	PopSkippedMsgKey(PopSkippedMsgKey),
 	RecvChainKdf(RecvKdf),
 	SkipCurrChainMsgKeys(SkipMsgKeys),
 	SkipOldChainMsgKeys(SkipMsgKeys),
-	SkippedMsg(super::cipher::error::DecryptAuth),
+	SkippedMsg(super::cipher::error::Decrypt),
+	SmallEncryptedHeaderBuff,
 }
 
 impl From<DecryptHeader> for Decrypt {
@@ -44,6 +45,7 @@ impl core::error::Error for Decrypt {
 			Self::RecvChainKdf(ref e) => Some(e),
 			Self::SkipCurrChainMsgKeys(ref e)
 			| Self::SkipOldChainMsgKeys(ref e) => Some(e),
+			Self::SmallEncryptedHeaderBuff => None,
 		}
 	}
 }
@@ -71,6 +73,9 @@ impl core::fmt::Display for Decrypt {
 			}
 			Self::SkippedMsg(..) => {
 				write!(f, "Failed to decrypt a skipped message.")
+			}
+			Self::SmallEncryptedHeaderBuff => {
+				write!(f, "Encrypted header's buffer too small. Use `dr::create_encrypted_header_buff`.")
 			}
 		}
 	}
@@ -109,25 +114,10 @@ impl core::fmt::Display for DecryptHeader {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Encrypt {
-	HeaderBytes(super::cipher::error::Encrypt),
-	Plain(super::cipher::error::EncryptAuth),
+	Buff(super::cipher::error::Encrypt),
+	Header(super::cipher::error::Encrypt),
 	SendChainKdf(SendKdf),
-}
-
-impl From<super::cipher::error::Encrypt> for Encrypt {
-	#[inline]
-	#[must_use]
-	fn from(e: super::cipher::error::Encrypt) -> Self {
-		Self::HeaderBytes(e)
-	}
-}
-
-impl From<super::cipher::error::EncryptAuth> for Encrypt {
-	#[inline]
-	#[must_use]
-	fn from(e: super::cipher::error::EncryptAuth) -> Self {
-		Self::Plain(e)
-	}
+	SmallEncryptedHeaderBuff,
 }
 
 impl From<SendKdf> for Encrypt {
@@ -142,9 +132,9 @@ impl core::error::Error for Encrypt {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::HeaderBytes(ref e) => Some(e),
-			Self::Plain(ref e) => Some(e),
+			Self::Buff(ref e) | Self::Header(ref e) => Some(e),
 			Self::SendChainKdf(e) => Some(e),
+			Self::SmallEncryptedHeaderBuff => None,
 		}
 	}
 }
@@ -152,14 +142,17 @@ impl core::error::Error for Encrypt {
 impl core::fmt::Display for Encrypt {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
+			Self::Buff(..) => {
+				write!(f, "Failed to encrypt a buffer.")
+			}
+			Self::Header(..) => {
+				write!(f, "Failed to encrypt the header bytes.")
+			}
 			Self::SendChainKdf(..) => {
 				write!(f, "Failed to kdf sending chain.")
 			}
-			Self::HeaderBytes(..) => {
-				write!(f, "Failed to encrypt the header bytes.")
-			}
-			Self::Plain(..) => {
-				write!(f, "Failed to encrypt a plain text.")
+			Self::SmallEncryptedHeaderBuff => {
+				write!(f, "Encrypted header's buffer too small.")
 			}
 		}
 	}
@@ -168,7 +161,7 @@ impl core::fmt::Display for Encrypt {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum PopSkippedMsgKey {
-	DecodeHeader,
+	HeaderFromBytes,
 }
 
 impl core::error::Error for PopSkippedMsgKey {
@@ -176,7 +169,7 @@ impl core::error::Error for PopSkippedMsgKey {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::DecodeHeader => None,
+			Self::HeaderFromBytes => None,
 		}
 	}
 }
@@ -184,8 +177,8 @@ impl core::error::Error for PopSkippedMsgKey {
 impl core::fmt::Display for PopSkippedMsgKey {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::DecodeHeader => {
-				write!(f, "Failed to decode the header.")
+			Self::HeaderFromBytes => {
+				write!(f, "Failed to convert bytes to header.")
 			}
 		}
 	}

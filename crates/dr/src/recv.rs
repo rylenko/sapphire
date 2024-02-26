@@ -52,29 +52,40 @@ impl Recv {
 	/// [`DecryptHeader`]: super::error::DecryptHeader
 	pub(super) fn decrypt_header(
 		&self,
-		encrypted_header: &[u8],
+		encrypted_header_buff: &mut [u8],
 	) -> Result<(super::header::Header, bool), super::error::DecryptHeader> {
-		use {alloc::borrow::ToOwned as _, zerocopy::FromBytes as _};
+		use zerocopy::FromBytes as _;
 
 		// Try to decrypt with current header key
 		if let Some(ref header_key) = self.header_key {
-			if let Ok(bytes) =
-				super::cipher::decrypt(header_key.as_bytes(), encrypted_header)
+			if super::cipher::decrypt(
+				header_key.as_bytes(),
+				encrypted_header_buff,
+				&[],
+			)
+			.is_ok()
 			{
-				let header = super::header::Header::ref_from(&bytes)
-					.ok_or(super::error::DecryptHeader::FromBytes)?;
-				return Ok((header.to_owned(), false));
+				let header = super::header::Header::ref_from(
+					&encrypted_header_buff[..encrypted_header_buff.len() - 32],
+				)
+				.ok_or(super::error::DecryptHeader::FromBytes)?;
+				return Ok((*header, false));
 			}
 		}
 
 		// Try to decrypt with next header key
-		if let Ok(bytes) = super::cipher::decrypt(
+		if super::cipher::decrypt(
 			self.next_header_key.as_bytes(),
-			encrypted_header,
-		) {
-			let header = super::header::Header::ref_from(&bytes)
-				.ok_or(super::error::DecryptHeader::FromBytes)?;
-			return Ok((header.to_owned(), true));
+			encrypted_header_buff,
+			&[],
+		)
+		.is_ok()
+		{
+			let header = super::header::Header::ref_from(
+				&encrypted_header_buff[..encrypted_header_buff.len() - 32],
+			)
+			.ok_or(super::error::DecryptHeader::FromBytes)?;
+			return Ok((*header, true));
 		}
 
 		Err(super::error::DecryptHeader::KeysNotFit)
@@ -107,16 +118,16 @@ impl Recv {
 	#[inline]
 	pub(super) fn pop_skipped_msg_key(
 		&mut self,
-		encrypted_header: &[u8],
+		encrypted_header_buff: &mut [u8],
 	) -> Result<Option<super::key::Msg>, super::error::PopSkippedMsgKey> {
-		self.skipped_msg_keys.pop(encrypted_header)
+		self.skipped_msg_keys.pop(encrypted_header_buff)
 	}
 
 	pub(super) fn skip_msg_keys(
 		&mut self,
 		until: u32,
 	) -> Result<(), super::error::SkipMsgKeys> {
-		use {super::msg_chain::MsgChain as _, alloc::borrow::ToOwned as _};
+		use super::msg_chain::MsgChain as _;
 
 		// Validate `until`
 		if self.next_msg_num + self.skipped_msg_keys_max_cnt < until {
@@ -133,7 +144,7 @@ impl Recv {
 			match self.header_key {
 				Some(ref header_key) => {
 					self.skipped_msg_keys.insert(
-						header_key.to_owned(),
+						header_key.clone(),
 						self.next_msg_num - 1,
 						msg_key,
 					);
@@ -204,34 +215,38 @@ mod tests {
 		let mut chain = create_chain();
 		upgrade(&mut chain, [1; 32], [2; 32]);
 
-		// Create header
+		// Create header and it's encryption buffer
 		let header = create_header(1);
+		let mut header_buff_1 = [header.as_bytes(), &[0; 32]].concat();
+		let mut header_buff_2 = [header.as_bytes(), &[0; 32]].concat();
 
 		// Encrypt header bytes with current header key
-		let encrypted_header = super::super::cipher::encrypt(
+		super::super::cipher::encrypt(
 			// `Option::unwrap` because of upgrade
 			chain.header_key.as_ref().unwrap().as_bytes(),
-			header.as_bytes(),
+			&mut header_buff_1,
+			&[],
 		)
 		.unwrap();
-
 		// Encrypt header bytes with next header key
-		let next_encrypted_header = super::super::cipher::encrypt(
+		super::super::cipher::encrypt(
 			chain.next_header_key.as_bytes(),
-			header.as_bytes(),
+			&mut header_buff_2,
+			&[],
 		)
 		.unwrap();
 
 		// Validate usage of keys
 		assert_eq!(
-			chain.decrypt_header(&encrypted_header).unwrap(),
+			chain.decrypt_header(&mut header_buff_1).unwrap(),
 			(header, false)
 		);
 		assert_eq!(
-			chain.decrypt_header(&next_encrypted_header).unwrap(),
+			chain.decrypt_header(&mut header_buff_2).unwrap(),
 			(header, true)
 		);
-		assert!(chain.decrypt_header(&[0; 150]).is_err());
+		let mut buffer = [0; 150];
+		assert!(chain.decrypt_header(&mut buffer).is_err());
 	}
 
 	#[test]
@@ -241,22 +256,24 @@ mod tests {
 		// Create chain and try skip too much
 		let mut chain = create_chain();
 		assert!(chain.skip_msg_keys(SKIPPED_MSG_KEYS_MAX_CNT).is_err());
-
-		// Update chain to set key
 		upgrade(&mut chain, [1; 32], [2; 32]);
-
 		// Skip message keys
 		chain.skip_msg_keys(2).unwrap();
 		assert_eq!(chain.next_msg_num, 2);
 
-		// Create headers
-		let header_1 = create_header(0);
-		let header_2 = create_header(1);
+		// Create header buffers
+		let (mut header_1_buff, mut header_2_buff) = {
+			let header_1 = create_header(0);
+			let header_2 = create_header(1);
+			(
+				[header_1.as_bytes(), &[0; 32]].concat(),
+				[header_2.as_bytes(), &[0; 32]].concat(),
+			)
+		};
 
 		// Create copy of chain
 		let mut chain_clone = create_chain();
 		upgrade(&mut chain_clone, [1; 32], [2; 32]);
-
 		// KDF cloned chain
 		let (msg_chain_key_1, msg_key_1) = chain_clone.kdf().unwrap();
 		chain_clone.commit_kdf(msg_chain_key_1);
@@ -264,33 +281,35 @@ mod tests {
 		chain_clone.commit_kdf(msg_chain_key_2);
 
 		// Encrypt headers
-		let encrypted_header_1 = super::super::cipher::encrypt(
+		super::super::cipher::encrypt(
 			chain_clone.header_key.as_ref().unwrap().as_bytes(),
-			header_1.as_bytes(),
+			&mut header_1_buff,
+			&[],
 		)
 		.unwrap();
-		let encrypted_header_2 = super::super::cipher::encrypt(
+		super::super::cipher::encrypt(
 			chain_clone.header_key.as_ref().unwrap().as_bytes(),
-			header_2.as_bytes(),
+			&mut header_2_buff,
+			&[],
 		)
 		.unwrap();
 
 		// Pop from original chain
 		assert_eq!(
-			chain.pop_skipped_msg_key(&encrypted_header_1).unwrap(),
+			chain.pop_skipped_msg_key(&mut header_1_buff).unwrap(),
 			Some(msg_key_1),
 		);
 		assert_eq!(
-			chain.pop_skipped_msg_key(&encrypted_header_1).unwrap(),
+			chain.pop_skipped_msg_key(&mut header_1_buff).unwrap(),
 			None
 		);
 		assert_eq!(chain.skipped_msg_keys.inner().len(), 1);
 		assert_eq!(
-			chain.pop_skipped_msg_key(&encrypted_header_2).unwrap(),
+			chain.pop_skipped_msg_key(&mut header_2_buff).unwrap(),
 			Some(msg_key_2),
 		);
 		assert_eq!(
-			chain.pop_skipped_msg_key(&encrypted_header_2).unwrap(),
+			chain.pop_skipped_msg_key(&mut header_2_buff).unwrap(),
 			None
 		);
 		assert!(chain.skipped_msg_keys.inner().is_empty());

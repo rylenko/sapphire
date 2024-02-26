@@ -80,27 +80,50 @@ impl State {
 	/// [`Decrypt`]: super::error::Decrypt
 	pub fn decrypt(
 		&mut self,
-		encrypted_header: &[u8],
-		cipher: &[u8],
+		buff: &mut [u8],
 		auth: &[u8],
-	) -> Result<alloc::vec::Vec<u8>, super::error::Decrypt> {
+		encrypted_header_buff: &mut [u8],
+	) -> Result<(), super::error::Decrypt> {
 		use super::msg_chain::MsgChain as _;
 
 		// Trying to check whether the message was skipped
 		if let Some(msg_key) =
-			self.recv.pop_skipped_msg_key(encrypted_header)?
+			self.recv.pop_skipped_msg_key(encrypted_header_buff)?
 		{
-			return super::cipher::decrypt_auth(
-				msg_key.as_bytes(),
-				cipher,
-				&[auth, encrypted_header],
-			)
+			return super::cipher::decrypt(msg_key.as_bytes(), buff, &[
+				auth,
+				encrypted_header_buff,
+			])
 			.map_err(super::error::Decrypt::SkippedMsg);
 		}
 
+		// TODO: Try to escape it.
+		//
+		// We create a copy of the header because:
+		// 1. `decrypt_header` will decrypt buffer and we will not be able to
+		//    authenticate them.
+		// 2. We must restore the original buffer immediately after decrypting
+		//    `decrypt_header` to avoid data loss due to errors
+		if encrypted_header_buff.len()
+			< super::utils::ENCRYPTED_HEADER_BUFF_LEN
+		{
+			return Err(super::error::Decrypt::SmallEncryptedHeaderBuff);
+		}
+		let mut encrypted_header_buff_copy =
+			super::utils::create_encrypted_header_buff();
+		encrypted_header_buff_copy.copy_from_slice(
+			&encrypted_header_buff[..super::utils::ENCRYPTED_HEADER_BUFF_LEN],
+		);
+
 		// Trying to decrypt the header with the receiving chain
 		let (header, need_dh_ratchet) =
-			self.recv.decrypt_header(encrypted_header)?;
+			self.recv.decrypt_header(encrypted_header_buff)?;
+
+		// Restore the original buffer immediately after decrypting
+		// `decrypt_header` to avoid data loss due to errors
+		encrypted_header_buff[..super::utils::ENCRYPTED_HEADER_BUFF_LEN]
+			.copy_from_slice(&encrypted_header_buff_copy);
+
 		if need_dh_ratchet {
 			// Skip current chain message keys and upgrade chains using DH
 			// ratchet
@@ -119,20 +142,23 @@ impl State {
 		let (msg_chain_key, msg_key) = self.recv.kdf()?;
 
 		// Decrypt
-		let plain =
-			super::cipher::decrypt_auth(msg_key.as_bytes(), cipher, &[
-				auth,
-				encrypted_header,
-			])
-			.map_err(super::error::Decrypt::NewMsg)?;
+		super::cipher::decrypt(msg_key.as_bytes(), buff, &[
+			auth,
+			&encrypted_header_buff_copy,
+		])
+		.map_err(super::error::Decrypt::NewMsg)?;
 
 		// Commit changes in receiving chain
 		self.recv.commit_kdf(msg_chain_key);
-		Ok(plain)
+		Ok(())
 	}
 
-	/// Encrypts `plain` text and authenticates it with concatenation of `auth`
-	/// and encrypted header.
+	/// Encrypts `buff` and authenticates it with concatenation of `auth` and
+	/// `encrypted_header_buff`. Before that encrypts header and fills the
+	/// `encrypted_header_buff` with encrypted bytes.
+	///
+	/// Encrypts everything except the last 32 bytes. The last 32 bytes are
+	/// occupied by MAC. Also buffers will not be corrupted in case of errors.
 	///
 	/// # Errors
 	///
@@ -141,39 +167,48 @@ impl State {
 	/// [`Encrypt`]: super::error::Encrypt
 	pub fn encrypt(
 		&mut self,
-		plain: &[u8],
+		buff: &mut [u8],
 		auth: &[u8],
-	) -> Result<
-		(alloc::vec::Vec<u8>, alloc::vec::Vec<u8>),
-		super::error::Encrypt,
-	> {
+		encrypted_header_buff: &mut [u8],
+	) -> Result<(), super::error::Encrypt> {
 		use {super::msg_chain::MsgChain as _, zerocopy::AsBytes as _};
 
 		// Move sending chain forward
 		let (msg_chain_key, msg_key, msg_num, header_key, prev_msgs_cnt) =
 			self.send.kdf()?;
 
-		// Create header and encode it to bytes
+		// Create header and get it's bytes
 		let header = super::header::Header::new(
 			super::key::Public::from(&self.local_private_key),
 			msg_num,
 			prev_msgs_cnt,
 		);
+		let header_bytes = header.as_bytes();
 
-		// Encrypt header's bytes
-		let encrypted_header = header.as_bytes_mut();
-		super::cipher::encrypt(header_key.as_bytes(), encrypted_header);
+		// Try to copy header bytes to it's encrypted buffer
+		if encrypted_header_buff.len() < header_bytes.len() {
+			return Err(super::error::Encrypt::SmallEncryptedHeaderBuff);
+		}
+		encrypted_header_buff[..header_bytes.len()]
+			.copy_from_slice(header_bytes);
 
+		// Encrypt header's bytes to buffer
+		super::cipher::encrypt(
+			header_key.as_bytes(),
+			encrypted_header_buff,
+			&[],
+		)
+		.map_err(super::error::Encrypt::Header)?;
 		// Encrypt plain data with encrypted header authentication
-		let cipher =
-			super::cipher::encrypt_auth(msg_key.as_bytes(), plain, &[
-				auth,
-				&encrypted_header,
-			]);
+		super::cipher::encrypt(msg_key.as_bytes(), buff, &[
+			auth,
+			encrypted_header_buff,
+		])
+		.map_err(super::error::Encrypt::Buff)?;
 
 		// Commit new KDF key because of successful encryption
 		self.send.commit_kdf(msg_chain_key);
-		Ok((encrypted_header, cipher))
+		Ok(())
 	}
 
 	/// Diffie-Hellman ratchet of the state with new data from `header`.
