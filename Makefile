@@ -17,4 +17,4 @@ fmt:
 test:
 	@cargo test --workspace
 
-.PHONY: all check-fmt clippy test
+.PHONY: all bench check-fmt clippy fmt test
