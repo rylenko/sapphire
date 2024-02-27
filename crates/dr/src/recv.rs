@@ -203,8 +203,12 @@ impl super::draft::Draft for Recv {
 	#[inline]
 	fn get_draft(&self) -> Self {
 		Self {
+			hdr_key: self.hdr_key.clone(),
+			key: self.key.clone(),
+			next_hdr_key: self.next_hdr_key.clone(),
+			next_msg_num: self.next_msg_num,
 			skipped_msg_keys: super::skipped_msg_keys::SkippedMsgKeys::new(),
-			..self.clone()
+			skipped_msg_keys_max_cnt: self.skipped_msg_keys_max_cnt,
 		}
 	}
 }
