@@ -16,7 +16,6 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 
 # Lines of code
 
-
 <table id="scc-table">
 	<thead><tr>
 		<th>Language</th>
@@ -35,7 +34,7 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>231</th>
 		<th>283</th>
 		<th>1584</th>
-		<th>0</th>
+		<th>56</th>
 		<th>52307</th>
 	</tr><tr>
 		<th>TOML</th>
@@ -58,12 +57,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr><tr>
 		<th>Markdown</th>
 		<th>2</th>
-		<th>34</th>
-		<th>17</th>
+		<th>33</th>
+		<th>16</th>
 		<th>0</th>
 		<th>17</th>
 		<th>0</th>
-		<th>1553</th>
+		<th>1552</th>
 	</tr><tr>
 		<th>License</th>
 		<th>1</th>
@@ -85,12 +84,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr><tr>
 		<th>Shell</th>
 		<th>1</th>
-		<th>60</th>
+		<th>54</th>
 		<th>8</th>
 		<th>3</th>
-		<th>49</th>
+		<th>43</th>
 		<th>0</th>
-		<th>992</th>
+		<th>912</th>
 	</tr><tr>
 		<th>gitignore</th>
 		<th>1</th>
@@ -104,12 +103,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	<tfoot><tr>
 		<th>Total</th>
 		<th>37</th>
-		<th>3022</th>
-		<th>410</th>
+		<th>3015</th>
+		<th>409</th>
 		<th>287</th>
-		<th>2325</th>
-		<th>0</th>
-    	<th>92340</th>
+		<th>2319</th>
+		<th>56</th>
+    	<th>92259</th>
 	</tr></tfoot>
 	</table>
 

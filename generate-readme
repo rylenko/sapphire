@@ -15,13 +15,7 @@ from_template() {
 
 generate_lines_of_code(){
 	echo "\n# Lines of code\n" >> "$FILENAME"
-	scc --no-complexity \
-		--no-gitignore \
-		--no-cocomo \
-		--no-size \
-		-f html-table \
-		--exclude-dir target \
-			>> "$FILENAME"
+	scc -f html-table --exclude-dir target >> "$FILENAME"
 }
 
 generate_todo() {
