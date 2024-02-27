@@ -1,6 +1,6 @@
 /// Receiving chain of [`State`].
 ///
-/// [`State`]: super::State
+/// [`State`]: super::state::State
 #[derive(Clone, Eq, PartialEq)]
 pub(super) struct Recv {
 	/// Is initially a shared secret. Later is the next header key.
@@ -141,10 +141,7 @@ impl Recv {
 
 		// KDF many times to remember skipped message keys
 		while self.next_msg_num < until {
-			// KDF and commit
-			let (msg_chain_key, msg_key) = self.kdf()?;
-			self.commit_kdf(msg_chain_key);
-
+			let msg_key = self.kdf()?;
 			// Insert new skipped message key
 			match self.hdr_key {
 				Some(ref hdr_key) => {
@@ -164,19 +161,18 @@ impl Recv {
 
 impl super::msg_chain::MsgChain for Recv {
 	type KdfError = super::error::RecvKdf;
-	type KdfOk<'a> = (super::key::MsgChain, super::key::Msg);
+	type KdfOk<'a> = super::key::Msg;
 
-	fn commit_kdf(&mut self, key: super::key::MsgChain) {
-		debug_assert_eq!(
-			key,
-			self.kdf().expect("Must be Ok if we use this.").0
-		);
-		self.next_msg_num += 1;
-		self.key = Some(key);
-	}
-
-	fn kdf(&self) -> Result<Self::KdfOk<'_>, Self::KdfError> {
-		self.key.as_ref().map(Self::kdf_inner).ok_or(Self::KdfError::NoKey)
+	fn kdf(&mut self) -> Result<Self::KdfOk<'_>, Self::KdfError> {
+		match self.key {
+			Some(ref key) => {
+				let (new_key, msg_key) = Self::kdf_inner(key);
+				self.key = Some(new_key);
+				self.next_msg_num += 1;
+				Ok(msg_key)
+			}
+			None => Err(Self::KdfError::NoKey),
+		}
 	}
 
 	fn upgrade(
@@ -188,6 +184,28 @@ impl super::msg_chain::MsgChain for Recv {
 			Some(core::mem::replace(&mut self.next_hdr_key, new_next_hdr_key));
 		self.key = Some(new_key);
 		self.next_msg_num = 0;
+	}
+}
+
+impl super::draft::Draft for Recv {
+	fn commit_draft(&mut self, draft: Self) {
+		self.hdr_key = draft.hdr_key;
+		self.key = draft.key;
+		self.next_hdr_key = draft.next_hdr_key;
+		self.next_msg_num = draft.next_msg_num;
+		self.skipped_msg_keys.extend(draft.skipped_msg_keys);
+		self.skipped_msg_keys_max_cnt = draft.skipped_msg_keys_max_cnt;
+	}
+
+	/// The draft does not include the skipped message keys. Therefore, any
+	/// actions that rely on skipped message keys should be did before working
+	/// with the draft.
+	#[inline]
+	fn get_draft(&self) -> Self {
+		Self {
+			skipped_msg_keys: super::skipped_msg_keys::SkippedMsgKeys::new(),
+			..self.clone()
+		}
 	}
 }
 
@@ -249,6 +267,31 @@ mod tests {
 	}
 
 	#[test]
+	fn test_draft() {
+		use super::super::draft::Draft as _;
+
+		// Create original with skipped message keys
+		let mut orig = create_chain();
+		orig.skipped_msg_keys.insert([1; 32].into(), 0, [2; 32].into());
+		let old_orig_next_hdr_key = orig.next_hdr_key.clone();
+
+		// Get draft and check that there are no skipped message keys
+		let mut draft = orig.get_draft();
+		assert!(draft.skipped_msg_keys.inner().is_empty());
+		draft.skipped_msg_keys.insert([2; 32].into(), 1, [3; 32].into());
+
+		// Upgrade and commit draft
+		draft.skipped_msg_keys.insert([1; 32].into(), 1, [3; 32].into());
+		upgrade(&mut draft, [1; 32], [2; 32]);
+		orig.commit_draft(draft);
+
+		assert_eq!(orig.key, Some([1; 32].into()));
+		assert_eq!(orig.hdr_key, Some(old_orig_next_hdr_key));
+		assert_eq!(orig.next_hdr_key.as_bytes(), &[2; 32]);
+		assert_eq!(orig.skipped_msg_keys.inner().len(), 2);
+	}
+
+	#[test]
 	fn test_skip_msg_keys_and_pop_skipped_msg_key() {
 		use {super::super::msg_chain::MsgChain as _, zerocopy::AsBytes as _};
 
@@ -276,10 +319,8 @@ mod tests {
 		let mut chain_clone = create_chain();
 		upgrade(&mut chain_clone, [1; 32], [2; 32]);
 		// KDF cloned chain
-		let (msg_chain_key_1, msg_key_1) = chain_clone.kdf().unwrap();
-		chain_clone.commit_kdf(msg_chain_key_1);
-		let (msg_chain_key_2, msg_key_2) = chain_clone.kdf().unwrap();
-		chain_clone.commit_kdf(msg_chain_key_2);
+		let msg_key_1 = chain_clone.kdf().unwrap();
+		let msg_key_2 = chain_clone.kdf().unwrap();
 
 		// Encrypt headers
 		super::super::cipher::encrypt(
@@ -329,12 +370,9 @@ mod tests {
 		assert_eq!(chain.next_hdr_key.as_bytes(), &[2; 32]);
 
 		// Use KDF
-		let (msg_chain_key_1, _) = chain.kdf().unwrap();
-		chain.commit_kdf(msg_chain_key_1);
-		let (msg_chain_key_2, _) = chain.kdf().unwrap();
-		chain.commit_kdf(msg_chain_key_2);
-		let (msg_chain_key_3, _) = chain.kdf().unwrap();
-		chain.commit_kdf(msg_chain_key_3);
+		chain.kdf().unwrap();
+		chain.kdf().unwrap();
+		chain.kdf().unwrap();
 
 		// Check KDF is done
 		assert_eq!(chain.hdr_key, Some(old_next_hdr_key));

@@ -1,6 +1,6 @@
 /// Root chain of [`State`].
 ///
-/// [`State`]: (super::State).
+/// [`State`]: super::state::State.
 #[derive(Clone, Eq, Hash, PartialEq)]
 #[repr(transparent)]
 pub(super) struct Root {

@@ -86,7 +86,7 @@ impl State {
 		auth: &[u8],
 		encrypted_hdr_buf: &mut [u8; super::encrypted_hdr_buf::LEN],
 	) -> Result<(), super::error::Decrypt> {
-		use super::msg_chain::MsgChain as _;
+		use super::{draft::Draft as _, msg_chain::MsgChain as _};
 
 		// Trying to check whether the message was skipped
 		if let Some(msg_key) =
@@ -99,36 +99,41 @@ impl State {
 			.map_err(super::error::Decrypt::SkippedMsg);
 		}
 
-		// TODO: Try to escape encrypted header buffer copy for authentication.
-		//
+		// Create draft to do not corrupt state. See trait implementation for
+		// more
+		let mut draft = self.get_draft();
 		// We create a copy of the header because `decrypt_hdr` will decrypt
 		// buffer and we will not be able to authenticate it
 		let encrypted_hdr_buf_copy = *encrypted_hdr_buf;
 
 		// Trying to decrypt the header with the receiving chain
 		let (hdr, need_dh_ratchet) =
-			self.recv.decrypt_hdr(encrypted_hdr_buf)?;
+			draft.recv.decrypt_hdr(encrypted_hdr_buf)?;
 		if need_dh_ratchet {
 			// Skip current chain message keys and upgrade chains using DH
 			// ratchet
-			self.recv
+			draft
+				.recv
 				.skip_msg_keys(hdr.prev_send_msgs_cnt())
 				.map_err(super::error::Decrypt::SkipOldChainMsgKeys)?;
-			self.dh_ratchet(hdr.public_key());
+			draft.dh_ratchet(hdr.public_key());
 		}
 		// Skip message keys to get current key
-		self.recv
+		draft
+			.recv
 			.skip_msg_keys(hdr.msg_num())
 			.map_err(super::error::Decrypt::SkipCurrChainMsgKeys)?;
 
-		// KDF to get decryption key, decrypt and commit new chain key
-		let (msg_chain_key, msg_key) = self.recv.kdf()?;
+		// KDF to get decryption key and decrypt
+		let msg_key = draft.recv.kdf()?;
 		super::cipher::decrypt(msg_key.as_bytes(), buf, &[
 			auth,
 			&encrypted_hdr_buf_copy,
 		])
 		.map_err(super::error::Decrypt::NewMsg)?;
-		self.recv.commit_kdf(msg_chain_key);
+
+		// Commit draft and return
+		self.commit_draft(draft);
 		Ok(())
 	}
 
@@ -152,25 +157,26 @@ impl State {
 		auth: &[u8],
 		encrypted_hdr_buf: &mut [u8; super::encrypted_hdr_buf::LEN],
 	) -> Result<(), super::error::Encrypt> {
-		use {super::msg_chain::MsgChain as _, zerocopy::AsBytes as _};
+		use {
+			super::{draft::Draft as _, msg_chain::MsgChain as _},
+			zerocopy::AsBytes as _,
+		};
+
+		// Create draft to do not corrupt state. See trait implementation for
+		// more
+		let mut draft = self.get_draft();
 
 		// Move sending chain forward
-		let (msg_chain_key, msg_key, msg_num, hdr_key, prev_msgs_cnt) =
-			self.send.kdf()?;
-
+		let (msg_key, msg_num, hdr_key, prev_msgs_cnt) = draft.send.kdf()?;
 		// Create header and get it's bytes
 		let hdr = super::hdr::Hdr::new(
-			super::key::Public::from(&self.local_private_key),
+			super::key::Public::from(&draft.local_private_key),
 			msg_num,
 			prev_msgs_cnt,
 		);
 		let hdr_bytes = hdr.as_bytes();
 
 		// Copy header bytes to encrypted header buffer
-		debug_assert_eq!(
-			hdr_bytes.len(),
-			super::encrypted_hdr_buf::LEN_WITHOUT_MAC
-		);
 		encrypted_hdr_buf[..hdr_bytes.len()].copy_from_slice(hdr_bytes);
 		// Encrypt header bytes buffer
 		super::cipher::encrypt(hdr_key.as_bytes(), encrypted_hdr_buf, &[])
@@ -182,9 +188,9 @@ impl State {
 			encrypted_hdr_buf,
 		])
 		.map_err(super::error::Encrypt::Buf)?;
-		// Commit new KDF key because of successful encryption
-		self.send.commit_kdf(msg_chain_key);
 
+		// Commit draft and return
+		self.commit_draft(draft);
 		Ok(())
 	}
 
@@ -210,30 +216,56 @@ impl State {
 	}
 }
 
+impl super::draft::Draft for State {
+	fn commit_draft(&mut self, draft: Self) {
+		self.local_private_key = draft.local_private_key;
+		self.remote_public_key = draft.remote_public_key;
+		self.recv.commit_draft(draft.recv);
+		self.root = draft.root;
+		self.send = draft.send;
+	}
+
+	/// Creates the draft. See [`Recv::get_draft`] for more.
+	///
+	/// [`Recv::get_draft`]: super::recv::Recv::get_draft
+	fn get_draft(&self) -> Self {
+		Self {
+			local_private_key: self.local_private_key.clone(),
+			remote_public_key: self.remote_public_key,
+			recv: self.recv.get_draft(),
+			root: self.root.clone(),
+			send: self.send.clone(),
+		}
+	}
+}
+
 #[cfg(test)]
 mod tests {
-	#[test]
-	fn test_dh_ratchet() {
-		const MAX_CNT: u32 = 5;
+	fn init() -> (super::State, super::State) {
 		const ALICE_RECV_HEADER_KEY: [u8; 32] = [3; 32];
 		const ROOT_KEY: [u8; 32] = [1; 32];
 		const ALICE_SEND_HEADER_KEY: [u8; 32] = [2; 32];
-
 		// Create Alice and Bob
-		let mut bob = super::State::new_bob(
+		let bob = super::State::new_bob(
 			super::super::key::Private::random(),
 			ROOT_KEY.into(),
 			ALICE_RECV_HEADER_KEY.into(),
 			ALICE_SEND_HEADER_KEY.into(),
-			MAX_CNT,
+			3,
 		);
-		let mut alice = super::State::new_alice(
+		let alice = super::State::new_alice(
 			super::super::key::Public::from(&bob.local_private_key),
 			ROOT_KEY.into(),
 			ALICE_SEND_HEADER_KEY.into(),
 			ALICE_RECV_HEADER_KEY.into(),
-			MAX_CNT,
+			5,
 		);
+		(alice, bob)
+	}
+
+	#[test]
+	fn test_dh_ratchet() {
+		let (mut alice, mut bob) = init();
 
 		// Bob's DH ratchet
 		bob.dh_ratchet((&alice.local_private_key).into());

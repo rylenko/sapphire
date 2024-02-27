@@ -5,15 +5,10 @@ pub(super) trait MsgChain {
 	where
 		Self: 'a;
 
-	/// Writes results of [kdf] to chain.
-	///
-	/// [kdf]: Self::kdf
-	fn commit_kdf(&mut self, key: super::key::MsgChain);
-
 	/// Wrapper for [`kdf_inner`].
 	///
 	/// [`kdf_inner`]: Self::kdf_inner
-	fn kdf(&self) -> Result<Self::KdfOk<'_>, Self::KdfError>;
+	fn kdf(&mut self) -> Result<Self::KdfOk<'_>, Self::KdfError>;
 
 	/// Moves chain forward. Common implementation for all. Should be wrapped
 	/// with [kdf].

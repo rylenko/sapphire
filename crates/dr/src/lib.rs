@@ -6,6 +6,7 @@ Double ratchet algorithm implementation for Sapphire.
 #![no_std]
 
 mod cipher;
+mod draft;
 pub mod encrypted_hdr_buf;
 mod error;
 mod hdr;

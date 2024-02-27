@@ -9,7 +9,7 @@ const BOB_AUTH: &[u8] = b"bob's auth";
 const CIPHER_LEN: usize = ALICE_BUF.len() - 32;
 
 #[test]
-fn test_decrypt_and_encrypt() {
+fn test_base_decrypt_and_encrypt() {
 	let (mut alice, mut bob) = utils::init();
 
 	// Because Bob does not know about Alice
@@ -97,7 +97,7 @@ fn test_decrypt_and_encrypt() {
 }
 
 #[test]
-fn test_double_sending() {
+fn test_double_send() {
 	let (mut alice, mut bob) = utils::init();
 
 	for _ in 0..ITERS {
@@ -123,4 +123,28 @@ fn test_double_sending() {
 			.decrypt(&mut bob_buf, BOB_AUTH, &mut bob_hdr_buf)
 			.is_err());
 	}
+}
+
+#[test]
+fn test_encrypted_hdr_buf_replace() {
+	let (mut alice, mut bob) = utils::init();
+
+	// First encryption
+	let mut buf_1 = ALICE_BUF;
+	let mut encrypted_hdr_buf_1 = dr::encrypted_hdr_buf::create();
+	alice.encrypt(&mut buf_1, ALICE_AUTH, &mut encrypted_hdr_buf_1).unwrap();
+
+	// Second encryption
+	let mut buf_2 = ALICE_BUF;
+	let mut encrypted_hdr_buf_2 = dr::encrypted_hdr_buf::create();
+	alice.encrypt(&mut buf_2, ALICE_AUTH, &mut encrypted_hdr_buf_2).unwrap();
+
+	// Try to decrypt first buffer with second header buffer
+	assert!(bob
+		.decrypt(&mut buf_1, ALICE_AUTH, &mut encrypted_hdr_buf_2)
+		.is_err());
+	assert!(bob
+		.decrypt(&mut buf_1, ALICE_AUTH, &mut encrypted_hdr_buf_1)
+		.is_ok());
+	assert_eq!(buf_1[..CIPHER_LEN], ALICE_BUF[..CIPHER_LEN]);
 }

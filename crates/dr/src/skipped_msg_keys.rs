@@ -25,6 +25,13 @@ impl SkippedMsgKeys {
 		&self.0
 	}
 
+	/// Extends from another storage.
+	pub(super) fn extend(&mut self, from: Self) {
+		for (hdr_key, values) in from.0 {
+			self.0.entry(hdr_key).or_default().extend(values.into_iter());
+		}
+	}
+
 	/// Inserts new entry.
 	pub(super) fn insert(
 		&mut self,
@@ -101,19 +108,54 @@ impl SkippedMsgKeys {
 #[cfg(test)]
 mod tests {
 	#[test]
+	fn test_extend() {
+		// Create test data
+		let hdr_key_1 = crate::key::Hdr::from([1; 32]);
+		let msg_key_1 = crate::key::Msg::from([2; 32]);
+		let hdr_key_2 = crate::key::Hdr::from([3; 32]);
+		let msg_key_2 = crate::key::Msg::from([4; 32]);
+		let msg_key_3 = crate::key::Msg::from([5; 32]);
+
+		// Create first storage
+		let mut a = super::SkippedMsgKeys::new();
+		a.insert(hdr_key_1.clone(), 0, msg_key_1.clone());
+
+		// Create second storage
+		let mut b = super::SkippedMsgKeys::new();
+		b.insert(hdr_key_1.clone(), 3, msg_key_2.clone());
+		b.insert(hdr_key_2.clone(), 1, msg_key_3.clone());
+
+		// Extend and assert
+		a.extend(b);
+		assert_eq!(
+			a.0.get(&hdr_key_1).unwrap().get(&0).unwrap().as_bytes(),
+			msg_key_1.as_bytes(),
+		);
+		assert_eq!(
+			a.0.get(&hdr_key_1).unwrap().get(&3).unwrap().as_bytes(),
+			msg_key_2.as_bytes(),
+		);
+		assert_eq!(
+			a.0.get(&hdr_key_2).unwrap().get(&1).unwrap().as_bytes(),
+			msg_key_3.as_bytes(),
+		);
+	}
+
+	#[test]
 	fn test_insert() {
 		// Create test data
 		let hdr_key = crate::key::Hdr::from([1; 32]);
 		let msg_key = crate::key::Msg::from([2; 32]);
 
 		// Insert
-		let mut a = super::SkippedMsgKeys::new();
-		a.insert(hdr_key.clone(), 100, msg_key.clone());
+		let mut storage = super::SkippedMsgKeys::new();
+		storage.insert(hdr_key.clone(), 100, msg_key.clone());
 
-		// Get
-		let got_msg_key =
-			a.0.get(&hdr_key).unwrap().get(&100).unwrap().as_bytes();
-		assert_eq!(got_msg_key, &[2; 32]);
+		// Assert
+		assert_eq!(
+			storage.0.get(&hdr_key).unwrap().get(&100).unwrap().as_bytes(),
+			msg_key.as_bytes(),
+		);
 	}
 
 	#[test]

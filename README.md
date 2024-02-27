@@ -18,12 +18,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 
 Language|files|blank|comment|code
 :-------|-------:|-------:|-------:|-------:
-Rust|22|221|262|1487
-TOML|1|11|0|30
+Rust|23|232|282|1583
+TOML|1|12|1|30
 --------|--------|--------|--------|--------
-SUM:|23|232|262|1517
+SUM:|24|244|283|1613
 
 # Todo
 |Path|Line|Description|
 |-|-|-|
-|crates/dr/src/state.rs|102|   Try to escape encrypted header buffer copy for authentication.|
+|crates/dr/Cargo.toml|1|   documentation with valid links to library elements.|

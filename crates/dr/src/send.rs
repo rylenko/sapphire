@@ -1,21 +1,17 @@
 /// Sending chain of [`State`].
 ///
-/// [`State`]: super::State
+/// [`State`]: super::state:State
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub(super) struct Send {
 	/// Is initially a shared key. Later is the next header key.
 	hdr_key: Option<super::key::Hdr>,
-
 	/// Sending chain key. Output chain key of KDF when sending messages.
 	key: Option<super::key::MsgChain>,
-
 	/// Number of the next message.
 	next_msg_num: u32,
-
 	/// Is initially a shared key. Later is the output of KDF from root key
 	/// and DH output.
 	next_hdr_key: super::key::Hdr,
-
 	/// Number of messages in previous sending chain.
 	prev_msgs_cnt: u32,
 }
@@ -55,31 +51,24 @@ impl Send {
 
 impl super::msg_chain::MsgChain for Send {
 	type KdfError = super::error::SendKdf;
-	type KdfOk<'a> =
-		(super::key::MsgChain, super::key::Msg, u32, &'a super::key::Hdr, u32);
+	type KdfOk<'a> = (super::key::Msg, u32, &'a super::key::Hdr, u32);
 
-	fn commit_kdf(&mut self, key: super::key::MsgChain) {
-		debug_assert_eq!(
-			key,
-			self.kdf().expect("Must be Ok if we use this.").0
-		);
-		self.key = Some(key);
-		self.next_msg_num += 1;
-	}
-
-	fn kdf(&self) -> Result<Self::KdfOk<'_>, Self::KdfError> {
+	fn kdf(&mut self) -> Result<Self::KdfOk<'_>, Self::KdfError> {
 		match self.key {
 			Some(ref key) => match self.hdr_key {
 				Some(ref hdr_key) => {
 					// Use inner KDF to get new root and message keys
 					let (new_key, msg_key) = Self::kdf_inner(key);
-					Ok((
-						new_key,
+					self.key = Some(new_key);
+
+					let ret = (
 						msg_key,
 						self.next_msg_num,
 						hdr_key,
 						self.prev_msgs_cnt,
-					))
+					);
+					self.next_msg_num += 1;
+					Ok(ret)
 				}
 				None => Err(Self::KdfError::NoHdrKey),
 			},
@@ -106,7 +95,7 @@ mod tests {
 	fn test_kdf_error() {
 		use super::super::msg_chain::MsgChain as _;
 
-		let chain = super::Send::new(
+		let mut chain = super::Send::new(
 			None,
 			None,
 			super::super::key::Hdr::from([1; 32]),
@@ -116,7 +105,7 @@ mod tests {
 	}
 
 	#[test]
-	fn test_kdf_and_upgrade_ok() -> Result<(), super::super::error::SendKdf> {
+	fn test_kdf_and_upgrade_ok() {
 		use super::super::msg_chain::MsgChain as _;
 
 		// Create chain
@@ -130,11 +119,8 @@ mod tests {
 		assert_eq!(chain.next_msg_num, 0);
 		assert_eq!(chain.prev_msgs_cnt, 0);
 
-		// KDF
-		let (msg_chain_key, ..) = chain.kdf()?;
-		chain.commit_kdf(msg_chain_key);
-
 		// Check KDF is done
+		chain.kdf().unwrap();
 		assert_eq!(chain.hdr_key.as_ref().unwrap().as_bytes(), &[2; 32]);
 		assert_ne!(chain.key.as_ref().unwrap().as_bytes(), &[1; 32]);
 		assert_eq!(chain.next_hdr_key.as_bytes(), &[3; 32]);
@@ -153,7 +139,5 @@ mod tests {
 		assert_eq!(chain.next_hdr_key.as_bytes(), &[5; 32]);
 		assert_eq!(chain.next_msg_num, 0);
 		assert_eq!(chain.prev_msgs_cnt, 1);
-
-		Ok(())
 	}
 }
