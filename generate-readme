@@ -38,6 +38,7 @@ generate_todo() {
 					printf "**|**";
 
 					$1=$2=$3="";
+					gsub(/^[ \t]+/, "", $0)
 					printf $0;
 					print "**|";
 				}

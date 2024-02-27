@@ -84,12 +84,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr><tr>
 		<th>Shell</th>
 		<th>1</th>
-		<th>54</th>
+		<th>55</th>
 		<th>8</th>
 		<th>3</th>
-		<th>43</th>
+		<th>44</th>
 		<th>0</th>
-		<th>924</th>
+		<th>953</th>
 	</tr><tr>
 		<th>gitignore</th>
 		<th>1</th>
@@ -103,16 +103,16 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	<tfoot><tr>
 		<th>Total</th>
 		<th>37</th>
-		<th>3015</th>
+		<th>3016</th>
 		<th>409</th>
 		<th>287</th>
-		<th>2319</th>
+		<th>2320</th>
 		<th>56</th>
-    	<th>92271</th>
+    	<th>92300</th>
 	</tr></tfoot>
 	</table>
 
 # Todo
 |Path|Line|Description|
 |-|-|-|
-|**crates/dr/Cargo.toml**|**1**|**   documentation with valid links to library elements.**|
+|**crates/dr/Cargo.toml**|**1**|**documentation with valid links to library elements.**|
