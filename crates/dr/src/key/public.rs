@@ -1,8 +1,6 @@
 /// Wrapper for [`PublicKey`].
 ///
 /// [`PublicKey`]: x25519_dalek::PublicKey
-///
-/// TODO: Zeroize? `ZeroizeOnDrop` does not fit because of [`Copy`].
 #[derive(
 	Copy,
 	Clone,

@@ -1,3 +1,0 @@
-#!/bin/sh
-
-cloc --md  ./crates/* | tail -n +4 > CLOC.md

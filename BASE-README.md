@@ -13,17 +13,3 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 ### Why not XChaCha20-Poly1305?
 
 [Is encrypt + HMAC stronger than AEAD?](https://crypto.stackexchange.com/a/100852)
-
-# Todo
-|Path|Line|Description|
-|-|-|-|
-|crates/dr/src/state.rs|102|   Try to escape encrypted header buffer copy for authentication.|
-
-# Lines of code
-
-Language|files|blank|comment|code
-:-------|-------:|-------:|-------:|-------:
-Rust|22|221|262|1487
-TOML|1|11|0|30
---------|--------|--------|--------|--------
-SUM:|23|232|262|1517

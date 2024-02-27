@@ -68,9 +68,6 @@ mod tests {
 
 		// Calculate DH input and use KDF
 		chain.kdf(&local_private_key.dh(remote_public_key));
-
-		// TODO: find new key value with third-party resource
-		// TODO: more asserts?
 		assert_ne!(chain.key, key);
 	}
 }

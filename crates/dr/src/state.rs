@@ -99,7 +99,7 @@ impl State {
 			.map_err(super::error::Decrypt::SkippedMsg);
 		}
 
-		// TODO: Try to escape this.
+		// TODO: Try to escape encrypted header buffer copy for authentication.
 		//
 		// We create a copy of the header because `decrypt_hdr` will decrypt
 		// buffer and we will not be able to authenticate it
