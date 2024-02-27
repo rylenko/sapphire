@@ -143,6 +143,12 @@ fn test_encrypted_hdr_buf_replace() {
 	assert!(bob
 		.decrypt(&mut buf_1, ALICE_AUTH, &mut encrypted_hdr_buf_2)
 		.is_err());
+	{
+		let mut encrypted_hdr_buf_1_copy = encrypted_hdr_buf_1;
+		assert!(bob
+			.decrypt(&mut buf_2, ALICE_AUTH, &mut encrypted_hdr_buf_1_copy)
+			.is_err());
+	}
 	assert!(bob
 		.decrypt(&mut buf_1, ALICE_AUTH, &mut encrypted_hdr_buf_1)
 		.is_ok());
