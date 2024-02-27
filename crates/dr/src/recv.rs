@@ -201,7 +201,7 @@ impl super::draft::Draft for Recv {
 	/// actions that rely on skipped message keys should be did before working
 	/// with the draft.
 	#[inline]
-	fn get_draft(&self) -> Self {
+	fn create_draft(&self) -> Self {
 		Self {
 			hdr_key: self.hdr_key.clone(),
 			key: self.key.clone(),
@@ -280,7 +280,7 @@ mod tests {
 		let old_orig_next_hdr_key = orig.next_hdr_key.clone();
 
 		// Get draft and check that there are no skipped message keys
-		let mut draft = orig.get_draft();
+		let mut draft = orig.create_draft();
 		assert!(draft.skipped_msg_keys.inner().is_empty());
 		draft.skipped_msg_keys.insert([2; 32].into(), 1, [3; 32].into());
 

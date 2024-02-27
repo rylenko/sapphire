@@ -7,5 +7,5 @@ pub(super) trait Draft {
 	fn commit_draft(&mut self, draft: Self);
 
 	#[must_use]
-	fn get_draft(&self) -> Self;
+	fn create_draft(&self) -> Self;
 }

@@ -35,7 +35,7 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>283</th>
 		<th>1594</th>
 		<th>56</th>
-		<th>52649</th>
+		<th>52679</th>
 	</tr><tr>
 		<th>TOML</th>
 		<th>4</th>
@@ -108,7 +108,7 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>288</th>
 		<th>1774</th>
 		<th>56</th>
-    	<th>57891</th>
+    	<th>57921</th>
 	</tr></tfoot>
 	</table>
 

@@ -101,7 +101,7 @@ impl State {
 
 		// Create draft to do not corrupt state. See trait implementation for
 		// more
-		let mut draft = self.get_draft();
+		let mut draft = self.create_draft();
 		// We create a copy of the header because `decrypt_hdr` will decrypt
 		// buffer and we will not be able to authenticate it
 		let encrypted_hdr_buf_copy = *encrypted_hdr_buf;
@@ -164,7 +164,7 @@ impl State {
 
 		// Create draft to do not corrupt state. See trait implementation for
 		// more
-		let mut draft = self.get_draft();
+		let mut draft = self.create_draft();
 
 		// Move sending chain forward
 		let (msg_key, msg_num, hdr_key, prev_msgs_cnt) = draft.send.kdf()?;
@@ -225,14 +225,14 @@ impl super::draft::Draft for State {
 		self.send = draft.send;
 	}
 
-	/// Creates the draft. See [`Recv::get_draft`] for more.
+	/// Creates the draft. See [`Recv::create_draft`] for more.
 	///
-	/// [`Recv::get_draft`]: super::recv::Recv::get_draft
-	fn get_draft(&self) -> Self {
+	/// [`Recv::create_draft`]: super::recv::Recv::create_draft
+	fn create_draft(&self) -> Self {
 		Self {
 			local_private_key: self.local_private_key.clone(),
 			remote_public_key: self.remote_public_key,
-			recv: self.recv.get_draft(),
+			recv: self.recv.create_draft(),
 			root: self.root.clone(),
 			send: self.send.clone(),
 		}
