@@ -16,7 +16,8 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 
 # Lines of code
 
-<html lang="en"><head><meta charset="utf-8" /><title>scc html output</title><style>table { border-collapse: collapse; }td, th { border: 1px solid #999; padding: 0.5rem; text-align: left;}</style></head><body><table id="scc-table">
+
+<table id="scc-table">
 	<thead><tr>
 		<th>Language</th>
 		<th>Files</th>
@@ -28,41 +29,14 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>Bytes</th>
 	</tr></thead>
 	<tbody><tr>
-		<th>JSON</th>
-		<th>182</th>
-		<th>182</th>
-		<th>0</th>
-		<th>0</th>
-		<th>182</th>
-		<th>0</th>
-		<th>94934</th>
-	</tr><tr>
-		<th>D</th>
-		<th>169</th>
-		<th>2720</th>
-		<th>423</th>
-		<th>0</th>
-		<th>2297</th>
-		<th>0</th>
-		<th>648540</th>
-	</tr><tr>
 		<th>Rust</th>
-		<th>27</th>
-		<th>25941</th>
-		<th>3547</th>
-		<th>654</th>
-		<th>21740</th>
+		<th>24</th>
+		<th>2098</th>
+		<th>231</th>
+		<th>283</th>
+		<th>1584</th>
 		<th>0</th>
-		<th>938624</th>
-	</tr><tr>
-		<th>LLVM IR</th>
-		<th>10</th>
-		<th>438</th>
-		<th>72</th>
-		<th>58</th>
-		<th>308</th>
-		<th>0</th>
-		<th>17331</th>
+		<th>52307</th>
 	</tr><tr>
 		<th>TOML</th>
 		<th>4</th>
@@ -84,12 +58,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr><tr>
 		<th>Markdown</th>
 		<th>2</th>
-		<th>33</th>
-		<th>16</th>
+		<th>34</th>
+		<th>17</th>
 		<th>0</th>
 		<th>17</th>
 		<th>0</th>
-		<th>1552</th>
+		<th>1553</th>
 	</tr><tr>
 		<th>License</th>
 		<th>1</th>
@@ -102,21 +76,21 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr><tr>
 		<th>Makefile</th>
 		<th>1</th>
-		<th>20</th>
-		<th>7</th>
+		<th>23</th>
+		<th>8</th>
 		<th>0</th>
-		<th>13</th>
+		<th>15</th>
 		<th>0</th>
-		<th>301</th>
+		<th>371</th>
 	</tr><tr>
 		<th>Shell</th>
 		<th>1</th>
-		<th>54</th>
+		<th>60</th>
 		<th>8</th>
 		<th>3</th>
-		<th>43</th>
+		<th>49</th>
 		<th>0</th>
-		<th>938</th>
+		<th>992</th>
 	</tr><tr>
 		<th>gitignore</th>
 		<th>1</th>
@@ -129,15 +103,15 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr></tbody>
 	<tfoot><tr>
 		<th>Total</th>
-		<th>401</th>
-		<th>30195</th>
-		<th>4219</th>
-		<th>716</th>
-		<th>25260</th>
+		<th>37</th>
+		<th>3022</th>
+		<th>410</th>
+		<th>287</th>
+		<th>2325</th>
 		<th>0</th>
-    	<th>1739337</th>
+    	<th>92340</th>
 	</tr></tfoot>
-	</table></body></html>
+	</table>
 
 # Todo
 |Path|Line|Description|

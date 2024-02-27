@@ -1,6 +1,6 @@
 .POSIX:
 
-all: clippy fmt test
+all: clippy fmt test generate-readme
 
 bench:
 	@cargo bench --workspace --verbose
@@ -14,7 +14,10 @@ clippy:
 fmt:
 	@cargo fmt --all
 
+generate-readme:
+	@./generate-readme
+
 test:
 	@cargo test --workspace
 
-.PHONY: all bench check-fmt clippy fmt test
+.PHONY: all bench check-fmt clippy fmt generate-readme test
