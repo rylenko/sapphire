@@ -2,15 +2,16 @@
 
 # Readme settings
 FILENAME="README.md"
-TEMPLATE_FILENAME="BASE-README.md"
+BASE_FILENAME="readme-generator/BASE.md"
 
 # Todo table settings
+TODO_FORMATTER="readme-generator/format-todo"
 TODO_HEADER="|Path|Line|Description|"
 TODO_HEADER_SEP="|-|-|-|"
 
 from_template() {
 	rm -f "$FILENAME"
-	cp "$TEMPLATE_FILENAME" "$FILENAME"
+	cp "$BASE_FILENAME" "$FILENAME"
 }
 
 generate_lines_of_code(){
@@ -26,24 +27,8 @@ generate_todo() {
 		--exclude "$script_name" \
 		--exclude-dir .git \
 		--exclude-dir target "TODO" . \
-			| awk '
-				{
-					split($1, path, ":");
-					printf "|**";
-
-					printf substr(path[1], 3, length(path[1]));
-					printf "**|**";
-
-					printf path[2];
-					printf "**|**";
-
-					$1=$2=$3="";
-					gsub(/^[ \t]+/, "", $0)
-					printf $0;
-					print "**|";
-				}
-			' \
-				>> "$FILENAME"
+			| "$TODO_FORMATTER" \
+			>> "$FILENAME"
 }
 
 main() {

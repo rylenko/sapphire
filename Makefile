@@ -15,7 +15,7 @@ fmt:
 	@cargo fmt --all
 
 generate-readme:
-	@./generate-readme
+	@./readme-generator/run
 
 test:
 	@cargo test --workspace

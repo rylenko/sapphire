@@ -64,6 +64,15 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>0</th>
 		<th>1552</th>
 	</tr><tr>
+		<th>AWK</th>
+		<th>1</th>
+		<th>17</th>
+		<th>4</th>
+		<th>1</th>
+		<th>12</th>
+		<th>0</th>
+		<th>225</th>
+	</tr><tr>
 		<th>License</th>
 		<th>1</th>
 		<th>674</th>
@@ -80,16 +89,16 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>0</th>
 		<th>15</th>
 		<th>0</th>
-		<th>371</th>
+		<th>376</th>
 	</tr><tr>
 		<th>Shell</th>
 		<th>1</th>
-		<th>55</th>
+		<th>40</th>
 		<th>8</th>
 		<th>3</th>
-		<th>44</th>
+		<th>29</th>
 		<th>0</th>
-		<th>953</th>
+		<th>753</th>
 	</tr><tr>
 		<th>gitignore</th>
 		<th>1</th>
@@ -102,13 +111,13 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr></tbody>
 	<tfoot><tr>
 		<th>Total</th>
-		<th>37</th>
-		<th>3022</th>
-		<th>409</th>
-		<th>287</th>
-		<th>2326</th>
+		<th>38</th>
+		<th>3024</th>
+		<th>413</th>
+		<th>288</th>
+		<th>2323</th>
 		<th>56</th>
-    	<th>92460</th>
+    	<th>92490</th>
 	</tr></tfoot>
 	</table>
 
