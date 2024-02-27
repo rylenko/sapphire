@@ -1,39 +1,54 @@
 #!/bin/sh
 
-script_name=$(basename "$0")
+# Readme settings
+FILENAME="README.md"
+TEMPLATE_FILENAME="BASE-README.md"
 
 # Todo table settings
 TODO_HEADER="|Path|Line|Description|"
 TODO_HEADER_SEP="|-|-|-|"
 
-# Copy base README.md
-rm -f README.md
-cp BASE-README.md README.md
+from_template() {
+	rm -f "$FILENAME"
+	cp "$TEMPLATE_FILENAME" "$FILENAME"
+}
 
-# Todos
-echo "\n# Todo\n$TODO_HEADER\n$TODO_HEADER_SEP" >> README.md
-grep -rn \
-	--exclude "$script_name" \
-	--exclude-dir .git \
-	--exclude-dir target "TODO" . \
-		| awk '
-			{
-				split($1, path, ":");
-				printf "|";
+generate_cloc(){
+	echo "\n# Lines of code\n" >> README.md
+	cloc --md  ./crates/* | tail -n +4 >> README.md
+}
 
-				printf substr(path[1], 3, length(path[1]));
-				printf "|";
+generate_todo() {
+	script_name=$(basename "$0")
 
-				printf path[2];
-				printf "|";
+	echo "\n# Todo\n$TODO_HEADER\n$TODO_HEADER_SEP" >> "$FILENAME"
+	grep -rn \
+		--exclude "$script_name" \
+		--exclude-dir .git \
+		--exclude-dir target "TODO" . \
+			| awk '
+				{
+					split($1, path, ":");
+					printf "|";
 
-				$1=$2=$3="";
-				printf $0;
-				print "|";
-			}
-		' \
-			>> README.md
+					printf substr(path[1], 3, length(path[1]));
+					printf "|";
 
-# Lines of code
-echo "\n# Lines of code\n" >> README.md
-cloc --md  ./crates/* | tail -n +4 >> README.md
+					printf path[2];
+					printf "|";
+
+					$1=$2=$3="";
+					printf $0;
+					print "|";
+				}
+			' \
+				>> "$FILENAME"
+}
+
+main() {
+	from_template
+	generate_cloc
+	generate_todo
+}
+
+main
