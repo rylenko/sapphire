@@ -13,9 +13,9 @@ from_template() {
 	cp "$TEMPLATE_FILENAME" "$FILENAME"
 }
 
-generate_cloc(){
-	echo "\n# Lines of code\n" >> README.md
-	cloc --md  ./crates/* | tail -n +4 >> README.md
+generate_lines_of_code(){
+	echo "\n# Lines of code\n" >> "$FILENAME"
+	scc --no-complexity --no-gitignore --no-cocomo --no-size -f html >> "$FILENAME"
 }
 
 generate_todo() {
@@ -47,7 +47,7 @@ generate_todo() {
 
 main() {
 	from_template
-	generate_cloc
+	generate_lines_of_code
 	generate_todo
 }
 
