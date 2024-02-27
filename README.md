@@ -89,7 +89,7 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>3</th>
 		<th>43</th>
 		<th>0</th>
-		<th>912</th>
+		<th>924</th>
 	</tr><tr>
 		<th>gitignore</th>
 		<th>1</th>
@@ -108,11 +108,11 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>287</th>
 		<th>2319</th>
 		<th>56</th>
-    	<th>92259</th>
+    	<th>92271</th>
 	</tr></tfoot>
 	</table>
 
 # Todo
 |Path|Line|Description|
 |-|-|-|
-|crates/dr/Cargo.toml|1|   documentation with valid links to library elements.|
+|**crates/dr/Cargo.toml**|**1**|**   documentation with valid links to library elements.**|
