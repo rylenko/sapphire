@@ -39,12 +39,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr><tr>
 		<th>TOML</th>
 		<th>4</th>
-		<th>81</th>
+		<th>83</th>
 		<th>16</th>
-		<th>1</th>
+		<th>3</th>
 		<th>64</th>
 		<th>0</th>
-		<th>1342</th>
+		<th>1380</th>
 	</tr><tr>
 		<th>YAML</th>
 		<th>3</th>
@@ -89,7 +89,7 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>1</th>
 		<th>12</th>
 		<th>0</th>
-		<th>225</th>
+		<th>218</th>
 	</tr><tr>
 		<th>gitignore</th>
 		<th>1</th>
@@ -103,16 +103,18 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	<tfoot><tr>
 		<th>Total</th>
 		<th>37</th>
-		<th>2354</th>
+		<th>2356</th>
 		<th>292</th>
-		<th>288</th>
+		<th>290</th>
 		<th>1774</th>
 		<th>56</th>
-    	<th>57921</th>
+    	<th>57952</th>
 	</tr></tfoot>
 	</table>
 
 # Todo
 |Path|Line|Description|
 |-|-|-|
-|**crates/dr/Cargo.toml**|**1**|**documentation with valid links to library elements.**|
+|**crates/dr/Cargo.toml**|**1**|**More benches**|
+|**crates/dr/Cargo.toml**|**2**|**Examples**|
+|**crates/dr/Cargo.toml**|**3**|**Create documentation with valid links to library elements.**|
