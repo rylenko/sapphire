@@ -13,9 +13,15 @@ fn test_base_decrypt_and_encrypt() {
 	let (mut alice, mut bob) = utils::init();
 
 	// Because Bob does not know about Alice
-	let mut bob_buf = BOB_BUF;
-	let mut bob_hdr_buf = dr::encrypted_hdr_buf::create();
-	assert!(bob.encrypt(&mut bob_buf, BOB_AUTH, &mut bob_hdr_buf).is_err());
+	{
+		let mut short_buf = [1, 2, 3];
+		let mut good_buf = BOB_BUF;
+		let mut hdr_buf = dr::encrypted_hdr_buf::create();
+		assert!(alice
+			.encrypt(&mut short_buf, ALICE_AUTH, &mut hdr_buf)
+			.is_err());
+		assert!(bob.encrypt(&mut good_buf, BOB_AUTH, &mut hdr_buf).is_err());
+	}
 
 	for _ in 0..ITERS {
 		// Create bad buffers
