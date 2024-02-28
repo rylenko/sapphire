@@ -46,6 +46,15 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>0</th>
 		<th>1380</th>
 	</tr><tr>
+		<th>Shell</th>
+		<th>1</th>
+		<th>50</th>
+		<th>8</th>
+		<th>4</th>
+		<th>38</th>
+		<th>0</th>
+		<th>950</th>
+	</tr><tr>
 		<th>YAML</th>
 		<th>3</th>
 		<th>50</th>
@@ -54,15 +63,6 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>41</th>
 		<th>0</th>
 		<th>956</th>
-	</tr><tr>
-		<th>Shell</th>
-		<th>1</th>
-		<th>40</th>
-		<th>8</th>
-		<th>3</th>
-		<th>29</th>
-		<th>0</th>
-		<th>773</th>
 	</tr><tr>
 		<th>Markdown</th>
 		<th>2</th>
@@ -75,12 +75,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr><tr>
 		<th>Makefile</th>
 		<th>1</th>
-		<th>23</th>
-		<th>8</th>
+		<th>27</th>
+		<th>9</th>
 		<th>0</th>
-		<th>15</th>
+		<th>18</th>
 		<th>0</th>
-		<th>376</th>
+		<th>493</th>
 	</tr><tr>
 		<th>AWK</th>
 		<th>1</th>
@@ -103,12 +103,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	<tfoot><tr>
 		<th>Total</th>
 		<th>37</th>
-		<th>2356</th>
-		<th>292</th>
-		<th>290</th>
-		<th>1774</th>
+		<th>2370</th>
+		<th>293</th>
+		<th>291</th>
+		<th>1786</th>
 		<th>56</th>
-    	<th>57952</th>
+    	<th>58246</th>
 	</tr></tfoot>
 	</table>
 

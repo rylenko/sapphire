@@ -1,6 +1,9 @@
 .POSIX:
 
-all: clippy fmt test generate-readme
+ROOT_DIR = $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+GEN_README_PATH = $(ROOT_DIR)readme-gen/run
+
+all: clippy fmt test gen-readme
 
 bench:
 	@cargo bench --workspace --verbose
@@ -14,10 +17,11 @@ clippy:
 fmt:
 	@cargo fmt --all
 
-generate-readme:
-	@./readme-generator/run
+gen-readme:
+	@shellcheck $(GEN_README_PATH)
+	@$(GEN_README_PATH)
 
 test:
 	@cargo test --workspace
 
-.PHONY: all bench check-fmt clippy fmt generate-readme test
+.PHONY: all bench check-fmt clippy fmt gen-readme test
