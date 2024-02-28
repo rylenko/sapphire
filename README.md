@@ -53,7 +53,7 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>4</th>
 		<th>38</th>
 		<th>0</th>
-		<th>950</th>
+		<th>947</th>
 	</tr><tr>
 		<th>YAML</th>
 		<th>3</th>
@@ -108,7 +108,7 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>291</th>
 		<th>1786</th>
 		<th>56</th>
-    	<th>58246</th>
+    	<th>58243</th>
 	</tr></tfoot>
 	</table>
 

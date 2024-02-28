@@ -10,7 +10,7 @@ BASE_README_PATH="$GEN_DIR/BASE.md"
 SCRIPT_PATH="$(basename "$0")"
 
 # Todo table settings
-TODO_FORMATTER="$GEN_DIR/format-todo"
+TODO_FORMATTER="$GEN_DIR/fmt-todo"
 TODO_HEADER="|Path|Line|Description|"
 TODO_HEADER_SEP="|-|-|-|"
 
