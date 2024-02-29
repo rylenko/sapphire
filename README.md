@@ -30,21 +30,21 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	<tbody><tr>
 		<th>Rust</th>
 		<th>24</th>
-		<th>2114</th>
-		<th>231</th>
-		<th>283</th>
-		<th>1600</th>
-		<th>56</th>
-		<th>52800</th>
+		<th>2154</th>
+		<th>241</th>
+		<th>291</th>
+		<th>1622</th>
+		<th>57</th>
+		<th>54391</th>
 	</tr><tr>
 		<th>TOML</th>
 		<th>4</th>
-		<th>83</th>
+		<th>84</th>
 		<th>16</th>
-		<th>3</th>
+		<th>4</th>
 		<th>64</th>
 		<th>0</th>
-		<th>1380</th>
+		<th>1439</th>
 	</tr><tr>
 		<th>Shell</th>
 		<th>1</th>
@@ -103,18 +103,19 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	<tfoot><tr>
 		<th>Total</th>
 		<th>37</th>
-		<th>2376</th>
-		<th>293</th>
-		<th>291</th>
-		<th>1792</th>
-		<th>56</th>
-    	<th>58364</th>
+		<th>2417</th>
+		<th>303</th>
+		<th>300</th>
+		<th>1814</th>
+		<th>57</th>
+    	<th>60014</th>
 	</tr></tfoot>
 	</table>
 
 # Todo
 |Path|Line|Description|
 |-|-|-|
-|**crates/dr/Cargo.toml**|**1**|**More benches**|
-|**crates/dr/Cargo.toml**|**2**|**Examples**|
-|**crates/dr/Cargo.toml**|**3**|**Create documentation with valid links to library elements.**|
+|**crates/dr/Cargo.toml**|**1**|**Union encrypted_hdr_buf and MAC into `Clue` struct**|
+|**crates/dr/Cargo.toml**|**2**|**More benches**|
+|**crates/dr/Cargo.toml**|**3**|**Examples**|
+|**crates/dr/Cargo.toml**|**4**|**Create documentation with valid links to library elements.**|

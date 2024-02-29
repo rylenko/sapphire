@@ -60,9 +60,7 @@ fn test_base_decrypt_and_encrypt() {
 			.is_err());
 
 		// Test success
-		assert!(bob
-			.decrypt(&mut alice_buf, ALICE_AUTH, &mut alice_hdr_buf)
-			.is_ok());
+		bob.decrypt(&mut alice_buf, ALICE_AUTH, &mut alice_hdr_buf).unwrap();
 		assert_eq!(alice_buf[..CIPHER_LEN], ALICE_BUF[..CIPHER_LEN]);
 
 		// Encrypt from Bob's side
@@ -95,9 +93,7 @@ fn test_base_decrypt_and_encrypt() {
 		assert!(alice.decrypt(&mut bob_buf, BOB_AUTH, &mut bad_hdr).is_err());
 
 		// Test successs
-		assert!(alice
-			.decrypt(&mut bob_buf, BOB_AUTH, &mut bob_hdr_buf)
-			.is_ok());
+		alice.decrypt(&mut bob_buf, BOB_AUTH, &mut bob_hdr_buf).unwrap();
 		assert_eq!(bob_buf[..CIPHER_LEN], BOB_BUF[..CIPHER_LEN]);
 	}
 }
@@ -111,9 +107,7 @@ fn test_double_send() {
 		let mut alice_buf = ALICE_BUF;
 		let mut alice_hdr_buf = dr::encrypted_hdr_buf::create();
 		alice.encrypt(&mut alice_buf, ALICE_AUTH, &mut alice_hdr_buf).unwrap();
-		assert!(bob
-			.decrypt(&mut alice_buf, ALICE_AUTH, &mut alice_hdr_buf)
-			.is_ok());
+		bob.decrypt(&mut alice_buf, ALICE_AUTH, &mut alice_hdr_buf).unwrap();
 		assert!(bob
 			.decrypt(&mut alice_buf, ALICE_AUTH, &mut alice_hdr_buf)
 			.is_err());
@@ -122,9 +116,7 @@ fn test_double_send() {
 		let mut bob_buf = BOB_BUF;
 		let mut bob_hdr_buf = dr::encrypted_hdr_buf::create();
 		bob.encrypt(&mut bob_buf, BOB_AUTH, &mut bob_hdr_buf).unwrap();
-		assert!(alice
-			.decrypt(&mut bob_buf, BOB_AUTH, &mut bob_hdr_buf)
-			.is_ok());
+		alice.decrypt(&mut bob_buf, BOB_AUTH, &mut bob_hdr_buf).unwrap();
 		assert!(alice
 			.decrypt(&mut bob_buf, BOB_AUTH, &mut bob_hdr_buf)
 			.is_err());
@@ -155,8 +147,55 @@ fn test_encrypted_hdr_buf_replace() {
 			.decrypt(&mut buf_2, ALICE_AUTH, &mut encrypted_hdr_buf_1_copy)
 			.is_err());
 	}
-	assert!(bob
-		.decrypt(&mut buf_1, ALICE_AUTH, &mut encrypted_hdr_buf_1)
-		.is_ok());
+	bob.decrypt(&mut buf_1, ALICE_AUTH, &mut encrypted_hdr_buf_1).unwrap();
 	assert_eq!(buf_1[..CIPHER_LEN], ALICE_BUF[..CIPHER_LEN]);
+}
+
+#[test]
+fn test_large_skip() {
+	let (mut alice, mut bob) = utils::init();
+
+	// First encryption
+	let mut buf_1 = ALICE_BUF;
+	let mut encrypted_hdr_buf_1 = dr::encrypted_hdr_buf::create();
+	alice.encrypt(&mut buf_1, ALICE_AUTH, &mut encrypted_hdr_buf_1).unwrap();
+
+	// Skip
+	for _ in 0..utils::MAX_SKIPPED_MSG_KEYS_CNT {
+		let mut skip_buf = ALICE_BUF;
+		let mut skip_encrypted_hdr_buf = dr::encrypted_hdr_buf::create();
+		alice
+			.encrypt(&mut skip_buf, ALICE_AUTH, &mut skip_encrypted_hdr_buf)
+			.unwrap();
+	}
+
+	// Encrypt after skip
+	let mut buf_2 = ALICE_BUF;
+	let mut encrypted_hdr_buf_2 = dr::encrypted_hdr_buf::create();
+	alice.encrypt(&mut buf_2, ALICE_AUTH, &mut encrypted_hdr_buf_2).unwrap();
+
+	// Failed to skip current chain keys
+	assert!(bob
+		.decrypt(&mut buf_2, ALICE_AUTH, &mut encrypted_hdr_buf_2)
+		.is_err());
+	bob.decrypt(&mut buf_1, ALICE_AUTH, &mut encrypted_hdr_buf_1).unwrap();
+	assert_eq!(buf_1[..CIPHER_LEN], ALICE_BUF[..CIPHER_LEN]);
+
+	// Try to encrypt from Bob's side
+	let mut buf_3 = BOB_BUF;
+	let mut encrypted_hdr_buf_3 = dr::encrypted_hdr_buf::create();
+	bob.encrypt(&mut buf_3, BOB_AUTH, &mut encrypted_hdr_buf_3).unwrap();
+
+	// Try to decrypt Bob's buffer and rn DH ratchet
+	alice.decrypt(&mut buf_3, BOB_AUTH, &mut encrypted_hdr_buf_3).unwrap();
+
+	// Encrypt after DH ratchet
+	let mut buf_4 = ALICE_BUF;
+	let mut encrypted_hdr_buf_4 = dr::encrypted_hdr_buf::create();
+	alice.encrypt(&mut buf_4, ALICE_AUTH, &mut encrypted_hdr_buf_4).unwrap();
+
+	// Failed to skip previous chain keys
+	assert!(bob
+		.decrypt(&mut buf_2, ALICE_AUTH, &mut encrypted_hdr_buf_2)
+		.is_err());
 }

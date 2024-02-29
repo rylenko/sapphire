@@ -1,3 +1,4 @@
+# TODO: Union encrypted_hdr_buf and MAC into `Clue` struct
 # TODO: More benches
 # TODO: Examples
 # TODO: Create documentation with valid links to library elements.
