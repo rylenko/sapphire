@@ -39,12 +39,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr><tr>
 		<th>TOML</th>
 		<th>4</th>
-		<th>84</th>
+		<th>85</th>
 		<th>16</th>
-		<th>4</th>
+		<th>5</th>
 		<th>64</th>
 		<th>0</th>
-		<th>1439</th>
+		<th>1525</th>
 	</tr><tr>
 		<th>Shell</th>
 		<th>1</th>
@@ -103,12 +103,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	<tfoot><tr>
 		<th>Total</th>
 		<th>37</th>
-		<th>2417</th>
+		<th>2418</th>
 		<th>303</th>
-		<th>300</th>
+		<th>301</th>
 		<th>1814</th>
 		<th>57</th>
-    	<th>60014</th>
+    	<th>60100</th>
 	</tr></tfoot>
 	</table>
 
@@ -117,5 +117,6 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 |-|-|-|
 |**crates/dr/Cargo.toml**|**1**|**Union encrypted_hdr_buf and MAC into `Clue` struct**|
 |**crates/dr/Cargo.toml**|**2**|**More benches**|
-|**crates/dr/Cargo.toml**|**3**|**Examples**|
-|**crates/dr/Cargo.toml**|**4**|**Create documentation with valid links to library elements.**|
+|**crates/dr/Cargo.toml**|**3**|**https://signal.org/docs/specifications/doubleratchet/#security-considerations**|
+|**crates/dr/Cargo.toml**|**4**|**Examples**|
+|**crates/dr/Cargo.toml**|**5**|**Create documentation with valid links to library elements.**|
