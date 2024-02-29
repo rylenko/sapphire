@@ -1,5 +1,6 @@
 # TODO: Union encrypted_hdr_buf and MAC into `Clue` struct
 # TODO: More benches
+# TODO: https://signal.org/docs/specifications/doubleratchet/#security-considerations
 # TODO: Examples
 # TODO: Create documentation with valid links to library elements.
 
