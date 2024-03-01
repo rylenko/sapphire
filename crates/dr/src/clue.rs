@@ -1,5 +1,8 @@
 /*! Clue for encrypted buffer, which contains encrypted header and MAC. */
 
+/// Clue with encryped buffer tag and encrypted header for decryption.
+///
+/// TODO: Currently 64 bytes. Need to find out whether it should be a [`Copy`].
 #[derive(
 	Copy,
 	Clone,
