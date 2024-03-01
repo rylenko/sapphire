@@ -1,3 +1,8 @@
+mod encrypted;
+mod error;
+
+pub(crate) use encrypted::Encrypted;
+
 /// Header of new message.
 ///
 /// Contains the public key of sender, message number and count of previous
@@ -21,6 +26,8 @@ pub(super) struct Hdr {
 }
 
 impl Hdr {
+	pub(super) const SIZE: usize = core::mem::size_of::<Self>();
+
 	#[inline]
 	#[must_use]
 	pub(super) const fn new(
@@ -29,6 +36,12 @@ impl Hdr {
 		prev_send_msgs_cnt: u32,
 	) -> Self {
 		Self { public_key, msg_num, prev_send_msgs_cnt }
+	}
+
+	#[inline]
+	#[must_use]
+	pub(super) fn encrypt(&self, key: &super::key::Hdr) -> Encrypted {
+		Encrypted::new(self, key)
 	}
 
 	#[inline]

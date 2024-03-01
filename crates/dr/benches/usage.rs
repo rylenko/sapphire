@@ -1,5 +1,8 @@
 #![allow(missing_docs)]
 
+const BUF: [u8; 4096] = [111; 4096];
+const ASSOC_DATA: &[u8] = &[222; 256];
+
 pub fn bench_key_creation(c: &mut criterion::Criterion) {
 	c.bench_function("key creation", |b| {
 		b.iter(|| {
@@ -11,6 +14,7 @@ pub fn bench_key_creation(c: &mut criterion::Criterion) {
 
 #[allow(clippy::missing_panics_doc)]
 pub fn bench_encryption(c: &mut criterion::Criterion) {
+	// Prepare data
 	let mut state = dr::State::new_alice(
 		dr::key::Public::from(&dr::key::Private::random()),
 		[1; 32].into(),
@@ -18,18 +22,12 @@ pub fn bench_encryption(c: &mut criterion::Criterion) {
 		[3; 32].into(),
 		5,
 	);
-	let mut plain = [5; 1024];
-	let auth = [1; 128];
-	let mut encrypted_hdr_buf = dr::encrypted_hdr_buf::create();
+	let mut buf = BUF;
 
 	c.bench_function("encryption", |b| {
 		b.iter(|| {
 			#[allow(clippy::unit_arg)]
-			criterion::black_box(
-				state
-					.encrypt(&mut plain, &auth, &mut encrypted_hdr_buf)
-					.unwrap(),
-			);
+			criterion::black_box(state.encrypt(&mut buf, ASSOC_DATA).unwrap());
 		});
 	});
 }

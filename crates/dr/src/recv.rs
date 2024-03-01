@@ -52,46 +52,17 @@ impl Recv {
 	/// [`DecryptHdr`]: super::error::DecryptHdr
 	pub(super) fn decrypt_hdr(
 		&self,
-		encrypted_hdr_buf: &mut [u8; super::encrypted_hdr_buf::LEN],
+		encrypted_hdr: &super::hdr::Encrypted,
 	) -> Result<(super::hdr::Hdr, bool), super::error::DecryptHdr> {
-		use zerocopy::FromBytes as _;
-
-		let mut done = false;
-		let mut need_upgrade = false;
-
 		// Try to decrypt with current header key
 		if let Some(ref hdr_key) = self.hdr_key {
-			if super::cipher::decrypt(
-				hdr_key.as_bytes(),
-				encrypted_hdr_buf,
-				&[],
-			)
-			.is_ok()
-			{
-				done = true;
+			if let Ok(hdr) = encrypted_hdr.decrypt(hdr_key) {
+				return Ok((hdr, false));
 			}
 		}
-
 		// Try to decrypt with next header key
-		if !done
-			&& super::cipher::decrypt(
-				self.next_hdr_key.as_bytes(),
-				encrypted_hdr_buf,
-				&[],
-			)
-			.is_ok()
-		{
-			done = true;
-			need_upgrade = true;
-		}
-
-		if done {
-			let hdr = super::hdr::Hdr::ref_from(
-				&encrypted_hdr_buf
-					[..super::encrypted_hdr_buf::LEN_WITHOUT_MAC],
-			)
-			.ok_or(super::error::DecryptHdr::FromBytes)?;
-			return Ok((*hdr, need_upgrade));
+		if let Ok(hdr) = encrypted_hdr.decrypt(&self.next_hdr_key) {
+			return Ok((hdr, true));
 		}
 		Err(super::error::DecryptHdr::KeysNotFit)
 	}
@@ -123,9 +94,9 @@ impl Recv {
 	#[inline]
 	pub(super) fn pop_skipped_msg_key(
 		&mut self,
-		encrypted_hdr_buf: &mut [u8; super::encrypted_hdr_buf::LEN],
-	) -> Result<Option<super::key::Msg>, super::error::PopSkippedMsgKey> {
-		self.skipped_msg_keys.pop(encrypted_hdr_buf)
+		encrypted_hdr: &super::hdr::Encrypted,
+	) -> Option<super::key::Msg> {
+		self.skipped_msg_keys.pop(encrypted_hdr)
 	}
 
 	pub(super) fn skip_msg_keys(
@@ -147,6 +118,7 @@ impl Recv {
 				Some(ref hdr_key) => {
 					self.skipped_msg_keys.insert(
 						hdr_key.clone(),
+						// KDF increases next message number by 1 so it's ok
 						self.next_msg_num - 1,
 						msg_key,
 					);
@@ -219,60 +191,38 @@ mod tests {
 
 	fn create_chain() -> super::Recv {
 		super::Recv::new(
-			super::super::key::Hdr::from([123; 32]),
+			crate::key::Hdr::from([123; 32]),
 			SKIPPED_MSG_KEYS_MAX_CNT,
 		)
 	}
 
-	fn create_hdr(msg_num: u32) -> super::super::hdr::Hdr {
-		super::super::hdr::Hdr::new(
-			super::super::key::Public::from([1; 32]),
-			msg_num,
-			100,
-		)
+	fn create_hdr(msg_num: u32) -> crate::hdr::Hdr {
+		crate::hdr::Hdr::new(crate::key::Public::from([1; 32]), msg_num, 100)
 	}
 
 	#[test]
 	fn test_decrypt_hdr() {
-		use zerocopy::AsBytes as _;
-
 		// Create and upgrade chain
 		let mut chain = create_chain();
 		upgrade(&mut chain, [1; 32], [2; 32]);
 
 		// Create header and it's encryption buffer
 		let hdr = create_hdr(1);
-		let mut hdr_buf_1 = super::super::encrypted_hdr_buf::create();
-		hdr.write_to_prefix(&mut hdr_buf_1).unwrap();
-		let mut hdr_buf_2 = super::super::encrypted_hdr_buf::create();
-		hdr.write_to_prefix(&mut hdr_buf_2).unwrap();
-
-		// Encrypt header bytes with current header key
-		super::super::cipher::encrypt(
-			// `Option::unwrap` because of upgrade
-			chain.hdr_key.as_ref().unwrap().as_bytes(),
-			&mut hdr_buf_1,
-			&[],
-		)
-		.unwrap();
-		// Encrypt header bytes with next header key
-		super::super::cipher::encrypt(
-			chain.next_hdr_key.as_bytes(),
-			&mut hdr_buf_2,
-			&[],
-		)
-		.unwrap();
+		let encrypted_1_hdr = hdr.encrypt(chain.hdr_key.as_ref().unwrap());
+		let encrypted_2_hdr = hdr.encrypt(&chain.next_hdr_key);
 
 		// Validate usage of keys
-		assert_eq!(chain.decrypt_hdr(&mut hdr_buf_1).unwrap(), (hdr, false));
-		assert_eq!(chain.decrypt_hdr(&mut hdr_buf_2).unwrap(), (hdr, true));
-		let mut buffer = super::super::encrypted_hdr_buf::create();
-		assert!(chain.decrypt_hdr(&mut buffer).is_err());
+		assert_eq!(chain.decrypt_hdr(&encrypted_1_hdr).unwrap(), (hdr, false));
+		assert_eq!(chain.decrypt_hdr(&encrypted_2_hdr).unwrap(), (hdr, true));
+
+		// Test bad header
+		let encrypted_3_hdr = hdr.encrypt(&[0; 32].into());
+		assert!(chain.decrypt_hdr(&encrypted_3_hdr).is_err());
 	}
 
 	#[test]
 	fn test_draft() {
-		use super::super::draft::Draft as _;
+		use crate::draft::Draft as _;
 
 		// Create original with skipped message keys
 		let mut orig = create_chain();
@@ -297,7 +247,7 @@ mod tests {
 
 	#[test]
 	fn test_skip_msg_keys_and_pop_skipped_msg_key() {
-		use {super::super::msg_chain::MsgChain as _, zerocopy::AsBytes as _};
+		use crate::msg_chain::MsgChain as _;
 
 		// Create chain and try skip too much
 		let mut chain = create_chain();
@@ -307,18 +257,6 @@ mod tests {
 		chain.skip_msg_keys(2).unwrap();
 		assert_eq!(chain.next_msg_num, 2);
 
-		// Create header buffers
-		let (mut hdr_1_buf, mut hdr_2_buf) = {
-			let hdr_1 = create_hdr(0);
-			let hdr_2 = create_hdr(1);
-
-			let mut buf_1 = super::super::encrypted_hdr_buf::create();
-			hdr_1.write_to_prefix(&mut buf_1);
-			let mut buf_2 = super::super::encrypted_hdr_buf::create();
-			hdr_2.write_to_prefix(&mut buf_2);
-			(buf_1, buf_2)
-		};
-
 		// Create copy of chain
 		let mut chain_clone = create_chain();
 		upgrade(&mut chain_clone, [1; 32], [2; 32]);
@@ -326,38 +264,30 @@ mod tests {
 		let msg_key_1 = chain_clone.kdf().unwrap();
 		let msg_key_2 = chain_clone.kdf().unwrap();
 
-		// Encrypt headers
-		super::super::cipher::encrypt(
-			chain_clone.hdr_key.as_ref().unwrap().as_bytes(),
-			&mut hdr_1_buf,
-			&[],
-		)
-		.unwrap();
-		super::super::cipher::encrypt(
-			chain_clone.hdr_key.as_ref().unwrap().as_bytes(),
-			&mut hdr_2_buf,
-			&[],
-		)
-		.unwrap();
+		// Create encrypted headers
+		let hdr_key = chain_clone.hdr_key.as_ref().unwrap();
+		let encrypted_hdr_1 = create_hdr(0).encrypt(hdr_key);
+		let encrypted_hdr_2 = create_hdr(1).encrypt(hdr_key);
 
 		// Pop from original chain
-		assert_eq!(
-			chain.pop_skipped_msg_key(&mut hdr_1_buf).unwrap(),
-			Some(msg_key_1),
-		);
-		assert_eq!(chain.pop_skipped_msg_key(&mut hdr_1_buf).unwrap(), None);
 		assert_eq!(chain.skipped_msg_keys.inner().len(), 1);
 		assert_eq!(
-			chain.pop_skipped_msg_key(&mut hdr_2_buf).unwrap(),
+			chain.pop_skipped_msg_key(&encrypted_hdr_1),
+			Some(msg_key_1),
+		);
+		assert_eq!(chain.pop_skipped_msg_key(&encrypted_hdr_1), None);
+		assert_eq!(chain.skipped_msg_keys.inner().len(), 1);
+		assert_eq!(
+			chain.pop_skipped_msg_key(&encrypted_hdr_2),
 			Some(msg_key_2),
 		);
-		assert_eq!(chain.pop_skipped_msg_key(&mut hdr_2_buf).unwrap(), None);
+		assert_eq!(chain.pop_skipped_msg_key(&encrypted_hdr_2), None);
 		assert!(chain.skipped_msg_keys.inner().is_empty());
 	}
 
 	#[test]
 	fn test_upgrade_and_kdf() {
-		use super::super::msg_chain::MsgChain as _;
+		use crate::msg_chain::MsgChain as _;
 
 		// Create chain
 		let mut chain = create_chain();
@@ -395,10 +325,10 @@ mod tests {
 	}
 
 	fn upgrade(chain: &mut super::Recv, key: [u8; 32], hdr_key: [u8; 32]) {
-		super::super::msg_chain::MsgChain::upgrade(
+		crate::msg_chain::MsgChain::upgrade(
 			chain,
-			super::super::key::MsgChain::from(key),
-			super::super::key::Hdr::from(hdr_key),
+			crate::key::MsgChain::from(key),
+			crate::key::Hdr::from(hdr_key),
 		);
 	}
 }

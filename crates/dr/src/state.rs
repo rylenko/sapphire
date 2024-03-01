@@ -70,12 +70,10 @@ impl State {
 		}
 	}
 
-	/// Decrypts `cipher` and authenticates it with concatenation of `auth` and
-	/// `encrypted_hdr`.
+	/// Decrypts `buf` and authenticates it with concatenation of `assoc_data`
+	/// and encrypted header's bytes.
 	///
 	/// # Errors
-	///
-	/// May corrupt `encrypted_hdr_buf` on error.
 	///
 	/// See [`Decrypt`].
 	///
@@ -83,32 +81,35 @@ impl State {
 	pub fn decrypt(
 		&mut self,
 		buf: &mut [u8],
-		auth: &[u8],
-		encrypted_hdr_buf: &mut [u8; super::encrypted_hdr_buf::LEN],
+		assoc_data: &[u8],
+		clue: &super::clue::Clue,
 	) -> Result<(), super::error::Decrypt> {
-		use super::{draft::Draft as _, msg_chain::MsgChain as _};
+		use {
+			super::{draft::Draft as _, msg_chain::MsgChain as _},
+			zerocopy::AsBytes as _,
+		};
+
+		// Get clue fields to not copy every time
+		let encrypted_hdr = clue.encrypted_hdr();
+		let buf_tag = clue.buf_tag();
 
 		// Trying to check whether the message was skipped
-		if let Some(msg_key) =
-			self.recv.pop_skipped_msg_key(encrypted_hdr_buf)?
-		{
-			return super::cipher::decrypt(msg_key.as_bytes(), buf, &[
-				auth,
-				encrypted_hdr_buf,
-			])
+		if let Some(msg_key) = self.recv.pop_skipped_msg_key(&encrypted_hdr) {
+			return super::cipher::decrypt(
+				msg_key.as_bytes(),
+				buf,
+				&[assoc_data, encrypted_hdr.as_bytes()],
+				buf_tag,
+			)
 			.map_err(super::error::Decrypt::SkippedMsg);
 		}
 
 		// Create draft to do not corrupt state. See trait implementation for
 		// more
 		let mut draft = self.create_draft();
-		// We create a copy of the header because `decrypt_hdr` will decrypt
-		// buffer and we will not be able to authenticate it
-		let encrypted_hdr_buf_copy = *encrypted_hdr_buf;
 
-		// Trying to decrypt the header with the receiving chain
-		let (hdr, need_dh_ratchet) =
-			draft.recv.decrypt_hdr(encrypted_hdr_buf)?;
+		// Decrypt the header with the receiving chain
+		let (hdr, need_dh_ratchet) = draft.recv.decrypt_hdr(&encrypted_hdr)?;
 		if need_dh_ratchet {
 			// Skip current chain message keys and upgrade chains using DH
 			// ratchet
@@ -126,10 +127,12 @@ impl State {
 
 		// KDF to get decryption key and decrypt
 		let msg_key = draft.recv.kdf()?;
-		super::cipher::decrypt(msg_key.as_bytes(), buf, &[
-			auth,
-			&encrypted_hdr_buf_copy,
-		])
+		super::cipher::decrypt(
+			msg_key.as_bytes(),
+			buf,
+			&[assoc_data, encrypted_hdr.as_bytes()],
+			buf_tag,
+		)
 		.map_err(super::error::Decrypt::NewMsg)?;
 
 		// Commit draft and return
@@ -137,16 +140,10 @@ impl State {
 		Ok(())
 	}
 
-	/// Encrypts `buf` and authenticates it with concatenation of `auth` and
-	/// `encrypted_hdr_buf`. Before that encrypts header and fills the
-	/// `encrypted_hdr_buf` with encrypted bytes.
-	///
-	/// Encrypts everything except the last 32 bytes. The last 32 bytes are
-	/// occupied by MAC.
+	/// Encrypts `buf` and authenticates it with concatenation of `assoc_data`
+	/// and encrypted header bytes.
 	///
 	/// # Errors
-	///
-	/// May corrupt `encrypted_hdr_buf` on error.
 	///
 	/// See [`Encrypt`].
 	///
@@ -154,9 +151,8 @@ impl State {
 	pub fn encrypt(
 		&mut self,
 		buf: &mut [u8],
-		auth: &[u8],
-		encrypted_hdr_buf: &mut [u8; super::encrypted_hdr_buf::LEN],
-	) -> Result<(), super::error::Encrypt> {
+		assoc_data: &[u8],
+	) -> Result<super::clue::Clue, super::error::Encrypt> {
 		use {
 			super::{draft::Draft as _, msg_chain::MsgChain as _},
 			zerocopy::AsBytes as _,
@@ -165,33 +161,25 @@ impl State {
 		// Create draft to do not corrupt state. See trait implementation for
 		// more
 		let mut draft = self.create_draft();
-
 		// Move sending chain forward
 		let (msg_key, msg_num, hdr_key, prev_msgs_cnt) = draft.send.kdf()?;
-		// Create header and get it's bytes
+
+		// Create header and encrypt it
 		let hdr = super::hdr::Hdr::new(
 			super::key::Public::from(&draft.local_private_key),
 			msg_num,
 			prev_msgs_cnt,
 		);
-		let hdr_bytes = hdr.as_bytes();
+		let encrypted_hdr = hdr.encrypt(hdr_key);
+		// Encrypt and authenticate plain buffer
+		let buf_tag = super::cipher::encrypt(msg_key.as_bytes(), buf, &[
+			assoc_data,
+			encrypted_hdr.as_bytes(),
+		]);
 
-		// Copy header bytes to encrypted header buffer
-		encrypted_hdr_buf[..hdr_bytes.len()].copy_from_slice(hdr_bytes);
-		// Encrypt header bytes buffer
-		super::cipher::encrypt(hdr_key.as_bytes(), encrypted_hdr_buf, &[])
-			.map_err(super::error::Encrypt::Hdr)?;
-
-		// Encrypt plain data with encrypted header authentication
-		super::cipher::encrypt(msg_key.as_bytes(), buf, &[
-			auth,
-			encrypted_hdr_buf,
-		])
-		.map_err(super::error::Encrypt::Buf)?;
-
-		// Commit draft and return
+		// Commit draft and return a clue
 		self.commit_draft(draft);
-		Ok(())
+		Ok(super::clue::Clue::new(buf_tag, encrypted_hdr))
 	}
 
 	/// DH ratchet of the state with nere remote public key.
@@ -247,14 +235,14 @@ mod tests {
 		const ALICE_SEND_HEADER_KEY: [u8; 32] = [2; 32];
 		// Create Alice and Bob
 		let bob = super::State::new_bob(
-			super::super::key::Private::random(),
+			crate::key::Private::random(),
 			ROOT_KEY.into(),
 			ALICE_RECV_HEADER_KEY.into(),
 			ALICE_SEND_HEADER_KEY.into(),
 			3,
 		);
 		let alice = super::State::new_alice(
-			super::super::key::Public::from(&bob.local_private_key),
+			crate::key::Public::from(&bob.local_private_key),
 			ROOT_KEY.into(),
 			ALICE_SEND_HEADER_KEY.into(),
 			ALICE_RECV_HEADER_KEY.into(),

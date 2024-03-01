@@ -1,14 +1,12 @@
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum Decrypt {
 	Hdr(DecryptHdr),
 	NewMsg(super::cipher::error::Decrypt),
-	PopSkippedMsgKey(PopSkippedMsgKey),
 	RecvChainKdf(RecvKdf),
 	SkipCurrChainMsgKeys(SkipMsgKeys),
 	SkipOldChainMsgKeys(SkipMsgKeys),
 	SkippedMsg(super::cipher::error::Decrypt),
-	SmallEncryptedHdrBuf,
 }
 
 impl From<DecryptHdr> for Decrypt {
@@ -16,14 +14,6 @@ impl From<DecryptHdr> for Decrypt {
 	#[must_use]
 	fn from(e: DecryptHdr) -> Self {
 		Self::Hdr(e)
-	}
-}
-
-impl From<PopSkippedMsgKey> for Decrypt {
-	#[inline]
-	#[must_use]
-	fn from(e: PopSkippedMsgKey) -> Self {
-		Self::PopSkippedMsgKey(e)
 	}
 }
 
@@ -41,11 +31,9 @@ impl core::error::Error for Decrypt {
 		match self {
 			Self::Hdr(ref e) => Some(e),
 			Self::NewMsg(ref e) | Self::SkippedMsg(ref e) => Some(e),
-			Self::PopSkippedMsgKey(ref e) => Some(e),
 			Self::RecvChainKdf(ref e) => Some(e),
 			Self::SkipCurrChainMsgKeys(ref e)
 			| Self::SkipOldChainMsgKeys(ref e) => Some(e),
-			Self::SmallEncryptedHdrBuf => None,
 		}
 	}
 }
@@ -59,9 +47,6 @@ impl core::fmt::Display for Decrypt {
 			Self::NewMsg(..) => {
 				write!(f, "Failed to decrypt the new message.")
 			}
-			Self::PopSkippedMsgKey(..) => {
-				write!(f, "Failed to pop a skipped message key.")
-			}
 			Self::RecvChainKdf(..) => {
 				write!(f, "Failed to kdf receiving chain.")
 			}
@@ -74,14 +59,11 @@ impl core::fmt::Display for Decrypt {
 			Self::SkippedMsg(..) => {
 				write!(f, "Failed to decrypt a skipped message.")
 			}
-			Self::SmallEncryptedHdrBuf => {
-				write!(f, "Encrypted header's buffer too small. Use `dr::create_encrypted_header_buf`.")
-			}
 		}
 	}
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum DecryptHdr {
 	FromBytes,
@@ -111,13 +93,10 @@ impl core::fmt::Display for DecryptHdr {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum Encrypt {
-	Buf(super::cipher::error::Encrypt),
-	Hdr(super::cipher::error::Encrypt),
 	SendChainKdf(SendKdf),
-	SmallEncryptedHdrBuf,
 }
 
 impl From<SendKdf> for Encrypt {
@@ -132,9 +111,7 @@ impl core::error::Error for Encrypt {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::Buf(ref e) | Self::Hdr(ref e) => Some(e),
 			Self::SendChainKdf(e) => Some(e),
-			Self::SmallEncryptedHdrBuf => None,
 		}
 	}
 }
@@ -142,49 +119,14 @@ impl core::error::Error for Encrypt {
 impl core::fmt::Display for Encrypt {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::Buf(..) => {
-				write!(f, "Failed to encrypt a buffer.")
-			}
-			Self::Hdr(..) => {
-				write!(f, "Failed to encrypt the header bytes.")
-			}
 			Self::SendChainKdf(..) => {
 				write!(f, "Failed to kdf sending chain.")
 			}
-			Self::SmallEncryptedHdrBuf => {
-				write!(f, "Encrypted header's buffer too small.")
-			}
 		}
 	}
 }
 
-#[derive(Debug)]
-#[non_exhaustive]
-pub enum PopSkippedMsgKey {
-	HdrFromBytes,
-}
-
-impl core::error::Error for PopSkippedMsgKey {
-	#[inline]
-	#[must_use]
-	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
-		match self {
-			Self::HdrFromBytes => None,
-		}
-	}
-}
-
-impl core::fmt::Display for PopSkippedMsgKey {
-	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-		match self {
-			Self::HdrFromBytes => {
-				write!(f, "Failed to convert bytes to header.")
-			}
-		}
-	}
-}
-
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum RecvKdf {
 	NoKey,
@@ -208,7 +150,7 @@ impl core::fmt::Display for RecvKdf {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum SendKdf {
 	NoHdrKey,
@@ -236,7 +178,7 @@ impl core::fmt::Display for SendKdf {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum SkipMsgKeys {
 	Kdf(RecvKdf),

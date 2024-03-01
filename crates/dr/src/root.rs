@@ -59,12 +59,12 @@ mod tests {
 	#[test]
 	fn test_kdf() {
 		// Create chain
-		let key = super::super::key::Root::from([1; 32]);
+		let key = crate::key::Root::from([1; 32]);
 		let mut chain = super::Root::new(key.clone());
 
 		// Create local and remote keys
-		let remote_public_key = super::super::key::Public::from([222; 32]);
-		let local_private_key = super::super::key::Private::random();
+		let remote_public_key = crate::key::Public::from([222; 32]);
+		let local_private_key = crate::key::Private::random();
 
 		// Calculate DH input and use KDF
 		chain.kdf(&local_private_key.dh(remote_public_key));

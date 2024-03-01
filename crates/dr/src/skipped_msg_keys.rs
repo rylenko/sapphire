@@ -56,35 +56,19 @@ impl SkippedMsgKeys {
 	/// [`PopSkippedMsgKey`]: super::error::PopSkippedMsgKey
 	pub(super) fn pop(
 		&mut self,
-		encrypted_hdr_buf: &mut [u8; super::encrypted_hdr_buf::LEN],
-	) -> Result<Option<super::key::Msg>, super::error::PopSkippedMsgKey> {
-		use zerocopy::FromBytes as _;
-
+		encrypted_hdr: &super::hdr::Encrypted,
+	) -> Option<super::key::Msg> {
 		let mut ret = None;
 		// The header key will be located here, which will no longer contain
 		// skipped message keys
 		let mut empty_hdr_key = None;
 
-		// Iterate over elements
+		// Iterate over elements to find message key
 		for (hdr_key, values) in &mut self.0 {
 			// Try to decrypt header with iterated header key
-			if super::cipher::decrypt(
-				hdr_key.as_bytes(),
-				encrypted_hdr_buf,
-				&[],
-			)
-			.is_ok()
-			{
-				// Extract message number from header bytes
-				let msg_num = super::hdr::Hdr::ref_from(
-					&encrypted_hdr_buf
-						[..super::encrypted_hdr_buf::LEN_WITHOUT_MAC],
-				)
-				.ok_or(super::error::PopSkippedMsgKey::HdrFromBytes)?
-				.msg_num();
-
+			if let Ok(hdr) = encrypted_hdr.decrypt(hdr_key) {
 				// Try to remove message number to get message key
-				if let Some(msg_key) = values.remove(&msg_num) {
+				if let Some(msg_key) = values.remove(&hdr.msg_num()) {
 					if values.is_empty() {
 						empty_hdr_key = Some(hdr_key.clone());
 					}
@@ -101,7 +85,7 @@ impl SkippedMsgKeys {
 		if let Some(ref hdr_key) = empty_hdr_key {
 			self.0.remove(hdr_key).expect("We had a reference to it.");
 		}
-		Ok(ret)
+		ret
 	}
 }
 

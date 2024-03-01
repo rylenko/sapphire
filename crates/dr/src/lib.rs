@@ -5,9 +5,11 @@ Double ratchet algorithm implementation for Sapphire.
 #![feature(error_in_core)]
 #![no_std]
 
+#[macro_use]
+mod macros;
 mod cipher;
+mod clue;
 mod draft;
-pub mod encrypted_hdr_buf;
 mod error;
 mod hdr;
 pub mod key;

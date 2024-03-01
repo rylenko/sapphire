@@ -93,26 +93,23 @@ impl super::msg_chain::MsgChain for Send {
 mod tests {
 	#[test]
 	fn test_kdf_error() {
-		use super::super::msg_chain::MsgChain as _;
+		use crate::msg_chain::MsgChain as _;
 
-		let mut chain = super::Send::new(
-			None,
-			None,
-			super::super::key::Hdr::from([1; 32]),
-		);
+		let mut chain =
+			super::Send::new(None, None, crate::key::Hdr::from([1; 32]));
 		// No key
 		assert!(chain.kdf().is_err());
 	}
 
 	#[test]
 	fn test_kdf_and_upgrade_ok() {
-		use super::super::msg_chain::MsgChain as _;
+		use crate::msg_chain::MsgChain as _;
 
 		// Create chain
 		let mut chain = super::Send::new(
-			Some(super::super::key::MsgChain::from([1; 32])),
-			Some(super::super::key::Hdr::from([2; 32])),
-			super::super::key::Hdr::from([3; 32]),
+			Some(crate::key::MsgChain::from([1; 32])),
+			Some(crate::key::Hdr::from([2; 32])),
+			crate::key::Hdr::from([3; 32]),
 		);
 
 		// Base asserts
@@ -129,8 +126,8 @@ mod tests {
 
 		// Upgrade chain
 		chain.upgrade(
-			super::super::key::MsgChain::from([4; 32]),
-			super::super::key::Hdr::from([5; 32]),
+			crate::key::MsgChain::from([4; 32]),
+			crate::key::Hdr::from([5; 32]),
 		);
 
 		// Check upgrade is done

@@ -29,13 +29,13 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr></thead>
 	<tbody><tr>
 		<th>Rust</th>
-		<th>24</th>
-		<th>2154</th>
-		<th>241</th>
-		<th>291</th>
-		<th>1622</th>
-		<th>57</th>
-		<th>54391</th>
+		<th>32</th>
+		<th>2049</th>
+		<th>227</th>
+		<th>266</th>
+		<th>1556</th>
+		<th>53</th>
+		<th>50014</th>
 	</tr><tr>
 		<th>TOML</th>
 		<th>4</th>
@@ -44,7 +44,7 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 		<th>5</th>
 		<th>64</th>
 		<th>0</th>
-		<th>1525</th>
+		<th>1512</th>
 	</tr><tr>
 		<th>Shell</th>
 		<th>1</th>
@@ -102,20 +102,20 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr></tbody>
 	<tfoot><tr>
 		<th>Total</th>
-		<th>37</th>
-		<th>2418</th>
-		<th>303</th>
-		<th>301</th>
-		<th>1814</th>
-		<th>57</th>
-    	<th>60100</th>
+		<th>45</th>
+		<th>2313</th>
+		<th>289</th>
+		<th>276</th>
+		<th>1748</th>
+		<th>53</th>
+    	<th>55710</th>
 	</tr></tfoot>
 	</table>
 
 # Todo
 |Path|Line|Description|
 |-|-|-|
-|**crates/dr/Cargo.toml**|**1**|**Union encrypted_hdr_buf and MAC into `Clue` struct**|
+|**crates/dr/Cargo.toml**|**1**|**Try to not copy from zerocopy structs**|
 |**crates/dr/Cargo.toml**|**2**|**More benches**|
 |**crates/dr/Cargo.toml**|**3**|**https://signal.org/docs/specifications/doubleratchet/#security-considerations**|
 |**crates/dr/Cargo.toml**|**4**|**Examples**|
