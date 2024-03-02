@@ -89,9 +89,8 @@ impl State {
 			zerocopy::AsBytes as _,
 		};
 
-		// Get clue fields to not copy every time
+		// Get encrypted header to not copy every time
 		let encrypted_hdr = clue.encrypted_hdr();
-		let buf_tag = clue.buf_tag();
 
 		// Trying to check whether the message was skipped
 		if let Some(msg_key) = self.recv.pop_skipped_msg_key(&encrypted_hdr) {
@@ -99,7 +98,7 @@ impl State {
 				msg_key.as_bytes(),
 				buf,
 				&[assoc_data, encrypted_hdr.as_bytes()],
-				buf_tag,
+				clue.buf_tag(),
 			)
 			.map_err(super::error::Decrypt::SkippedMsg);
 		}
@@ -131,7 +130,7 @@ impl State {
 			msg_key.as_bytes(),
 			buf,
 			&[assoc_data, encrypted_hdr.as_bytes()],
-			buf_tag,
+			clue.buf_tag(),
 		)
 		.map_err(super::error::Decrypt::NewMsg)?;
 

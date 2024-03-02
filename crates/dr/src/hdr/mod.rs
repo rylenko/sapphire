@@ -46,19 +46,19 @@ impl Hdr {
 
 	#[inline]
 	#[must_use]
-	pub(super) const fn msg_num(self) -> u32 {
+	pub(super) const fn msg_num(&self) -> u32 {
 		self.msg_num
 	}
 
 	#[inline]
 	#[must_use]
-	pub(super) const fn prev_send_msgs_cnt(self) -> u32 {
+	pub(super) const fn prev_send_msgs_cnt(&self) -> u32 {
 		self.prev_send_msgs_cnt
 	}
 
 	#[inline]
 	#[must_use]
-	pub(super) const fn public_key(self) -> super::key::Public {
+	pub(super) const fn public_key(&self) -> super::key::Public {
 		self.public_key
 	}
 }
