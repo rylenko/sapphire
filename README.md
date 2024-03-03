@@ -48,12 +48,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr><tr>
 		<th>Shell</th>
 		<th>1</th>
-		<th>50</th>
+		<th>52</th>
 		<th>8</th>
-		<th>4</th>
-		<th>38</th>
+		<th>5</th>
+		<th>39</th>
 		<th>0</th>
-		<th>947</th>
+		<th>1008</th>
 	</tr><tr>
 		<th>YAML</th>
 		<th>3</th>
@@ -84,12 +84,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	</tr><tr>
 		<th>AWK</th>
 		<th>1</th>
-		<th>17</th>
-		<th>4</th>
+		<th>13</th>
 		<th>1</th>
-		<th>12</th>
+		<th>1</th>
+		<th>11</th>
 		<th>0</th>
-		<th>218</th>
+		<th>213</th>
 	</tr><tr>
 		<th>gitignore</th>
 		<th>1</th>
@@ -103,16 +103,17 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	<tfoot><tr>
 		<th>Total</th>
 		<th>45</th>
-		<th>2314</th>
-		<th>289</th>
-		<th>278</th>
+		<th>2312</th>
+		<th>286</th>
+		<th>279</th>
 		<th>1747</th>
 		<th>53</th>
-    	<th>55809</th>
+    	<th>55865</th>
 	</tr></tfoot>
 	</table>
 
 # Todo
+
 |Path|Line|Description|
 |-|-|-|
 |**crates/dr/src/clue.rs**|**5**|**Currently 64 bytes. Need to find out whether it should be a [`Copy`].**|
