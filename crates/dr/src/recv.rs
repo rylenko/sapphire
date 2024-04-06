@@ -92,6 +92,7 @@ impl Recv {
 	///
 	/// [pop]: super::skipped_msg_keys::SkippedMsgKeys::pop
 	#[inline]
+	#[must_use]
 	pub(super) fn pop_skipped_msg_key(
 		&mut self,
 		encrypted_hdr: &super::hdr::Encrypted,

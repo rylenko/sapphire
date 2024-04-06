@@ -39,8 +39,7 @@ impl SkippedMsgKeys {
 		msg_num: u32,
 		msg_key: super::key::Msg,
 	) {
-		let values = self.0.entry(hdr_key).or_default();
-		values.insert(msg_num, msg_key);
+		self.0.entry(hdr_key).or_default().insert(msg_num, msg_key);
 	}
 
 	/// Gets skipped message key using encrypted header.
@@ -54,6 +53,7 @@ impl SkippedMsgKeys {
 	/// See [`PopSkippedMsgKey`].
 	///
 	/// [`PopSkippedMsgKey`]: super::error::PopSkippedMsgKey
+	#[must_use]
 	pub(super) fn pop(
 		&mut self,
 		encrypted_hdr: &super::hdr::Encrypted,

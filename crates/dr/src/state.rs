@@ -212,9 +212,6 @@ impl super::draft::Draft for State {
 		self.send = draft.send;
 	}
 
-	/// Creates the draft. See [`Recv::create_draft`] for more.
-	///
-	/// [`Recv::create_draft`]: super::recv::Recv::create_draft
 	fn create_draft(&self) -> Self {
 		Self {
 			local_private_key: self.local_private_key.clone(),

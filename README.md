@@ -30,12 +30,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	<tbody><tr>
 		<th>Rust</th>
 		<th>32</th>
-		<th>2051</th>
+		<th>2049</th>
 		<th>227</th>
-		<th>269</th>
-		<th>1555</th>
+		<th>266</th>
+		<th>1556</th>
 		<th>53</th>
-		<th>50159</th>
+		<th>50035</th>
 	</tr><tr>
 		<th>TOML</th>
 		<th>4</th>
@@ -103,12 +103,12 @@ The following cryptographic algorithms were selected: [X25519](https://en.wikipe
 	<tfoot><tr>
 		<th>Total</th>
 		<th>45</th>
-		<th>2312</th>
+		<th>2310</th>
 		<th>286</th>
-		<th>279</th>
-		<th>1747</th>
+		<th>276</th>
+		<th>1748</th>
 		<th>53</th>
-    	<th>55865</th>
+    	<th>55741</th>
 	</tr></tfoot>
 	</table>
 
