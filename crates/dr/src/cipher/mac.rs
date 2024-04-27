@@ -1,9 +1,5 @@
 #[must_use]
-pub(super) fn auth(
-	key: &[u8],
-	buf: &[u8],
-	assoc_data: &[&[u8]],
-) -> [u8; 32] {
+pub(super) fn auth(key: &[u8], buf: &[u8], assoc_data: &[&[u8]]) -> [u8; 32] {
 	use hkdf::hmac::Mac;
 
 	// Create MAC using auth key
