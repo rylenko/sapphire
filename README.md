@@ -1,123 +1,116 @@
-# Sapphire
+# Simple Editor
 
-Modern **secure** and **private** messenger with end-to-end encryption.
+**Important goals**:
 
-**Secure** means protection from danger. **Private** means protection from observation.
+- Ease of configuring, building and use.
+- Fast movement and editing.
+- The middle ground between readable code and a small code base.
+- No dependencies.
+- Extensibility.
 
-# Implementation details
+**Examples of what may be in separate patches**:
 
-Built on [Double Ratchet Algorithm](https://en.wikipedia.org/wiki/Double_Ratchet_Algorithm).
+- Line numbers on the left.
+- Automatic saving.
+- Syntax highlighting.
+- Key macros.
+- Regular expressions.
+- Configuring using `~/.config/se/se.conf` or something like that.
 
-The following cryptographic algorithms were selected: [X25519](https://en.wikipedia.org/wiki/Curve25519) for key exchange, [XChaCha20](https://en.wikipedia.org/wiki/Salsa20#ChaCha_variant) for encryption, [HKDF-SHA256](https://en.wikipedia.org/wiki/HKDF) for keys derivation and [HMAC-SHA256](https://en.wikipedia.org/wiki/HMAC-SHA256) for authentication.
+# Usage
 
-### Why not XChaCha20-Poly1305?
+Open a file:
 
-[Is encrypt + HMAC stronger than AEAD?](https://crypto.stackexchange.com/a/100852)
+```
+$ se <path>
+```
 
-# Lines of code
+Normal mode keys:
 
-<table id="scc-table">
-	<thead><tr>
-		<th>Language</th>
-		<th>Files</th>
-		<th>Lines</th>
-		<th>Blank</th>
-		<th>Comment</th>
-		<th>Code</th>
-		<th>Complexity</th>
-		<th>Bytes</th>
-	</tr></thead>
-	<tbody><tr>
-		<th>Rust</th>
-		<th>32</th>
-		<th>2049</th>
-		<th>227</th>
-		<th>266</th>
-		<th>1556</th>
-		<th>53</th>
-		<th>50035</th>
-	</tr><tr>
-		<th>TOML</th>
-		<th>4</th>
-		<th>84</th>
-		<th>16</th>
-		<th>4</th>
-		<th>64</th>
-		<th>0</th>
-		<th>1466</th>
-	</tr><tr>
-		<th>Shell</th>
-		<th>1</th>
-		<th>52</th>
-		<th>8</th>
-		<th>5</th>
-		<th>39</th>
-		<th>0</th>
-		<th>1008</th>
-	</tr><tr>
-		<th>YAML</th>
-		<th>3</th>
-		<th>50</th>
-		<th>9</th>
-		<th>0</th>
-		<th>41</th>
-		<th>0</th>
-		<th>956</th>
-	</tr><tr>
-		<th>Markdown</th>
-		<th>2</th>
-		<th>33</th>
-		<th>16</th>
-		<th>0</th>
-		<th>17</th>
-		<th>0</th>
-		<th>1552</th>
-	</tr><tr>
-		<th>Makefile</th>
-		<th>1</th>
-		<th>27</th>
-		<th>9</th>
-		<th>0</th>
-		<th>18</th>
-		<th>0</th>
-		<th>493</th>
-	</tr><tr>
-		<th>AWK</th>
-		<th>1</th>
-		<th>13</th>
-		<th>1</th>
-		<th>1</th>
-		<th>11</th>
-		<th>0</th>
-		<th>213</th>
-	</tr><tr>
-		<th>gitignore</th>
-		<th>1</th>
-		<th>2</th>
-		<th>0</th>
-		<th>0</th>
-		<th>2</th>
-		<th>0</th>
-		<th>18</th>
-	</tr></tbody>
-	<tfoot><tr>
-		<th>Total</th>
-		<th>45</th>
-		<th>2310</th>
-		<th>286</th>
-		<th>276</th>
-		<th>1748</th>
-		<th>53</th>
-    	<th>55741</th>
-	</tr></tfoot>
-	</table>
+- `a` - start of line.
+- `d` - end of line.
+- `e` - go to begin of next word.
+- `h` or `Left arrow` - go left.
+- `i` - switch to inserting mode.
+- `j`, `Down arrow` or by moving the mouse wheel down - go down.
+- `k` or `Up arrow` or by moving the mouse wheel up - go up.
+- `l` or `Right arrow` - go right.
+- `n` - create a line below the current line and move to it.
+- `q` - go to begin of previous word.
+- (X) `r` - redo last undo;
+- `s` - go to end of file.
+- (X) `u` - undo last change.
+- `w` - go to begin of file.
+- `/` - switch to searching mode.
+- `Ctrl+d` - delete current line.
+- `Ctrl+n` - create a line above the current line and move to it.
+- `Ctrl+s` - save.
+- `Ctrl+q` - quit. If you changed the file, you will need to either save it or press this key several times.
+- `Ctrl+x` - save to spare directory. Useful if no privilege to write to opened file.
+- `Enter` - Search forward if a query was previously entered in the search mode.
+- `Tab` - Search backward if a query was previously entered in the search mode.
+
+You can also repeat a key by pressing `<number><key>`. For example, `5n` will create 5 lines below the cursor.
+
+Inserting mode keys:
+
+- `Esc` - switch to normal mode.
+- `Backspace` - delete character before cursor.
+- `Enter` - break line.
+- Otherwise, if character is printable, the character is inserted.
+
+Searching mode keys:
+
+- `Esc` - Cancel searching and switch to normal mode.
+- `Backspace` - delete last character in search query.
+- `Enter` - End query input, switch to normal mode and search forward once.
+- Otherwise, if character is printable, the character is inserted to search query.
+
+# Configuration
+
+You can set up convenient key bindings and convenient colors in `src/cfg.h`. Note that after changes you need to build and install again.
+
+# Build and install
+
+You can set up convenient building flags in `cfg.mk`. For example, if you want to debug, you need to add `-g` to flags. Or, if you want to build editor for OpenBSD, you need to uncomment some lines in `cfg.mk`.
+
+Build binary:
+
+```
+$ make
+```
+
+Install. Most likely you will need `sudo`, `doas` or something like that before the command:
+
+```
+$ make install
+```
+
+Build and use valgrind:
+
+```
+$ make valgrind
+```
+
+Clean all build files:
+
+```
+$ make clean
+```
+
+Regenerate README.md. Requires awk to collect todos:
+
+```
+$ make gen-readme
+```
 
 # Todo
 
 |Path|Line|Description|
 |-|-|-|
-|**crates/dr/src/clue.rs**|**5**|**Currently 64 bytes. Need to find out whether it should be a [`Copy`].**|
-|**crates/dr/Cargo.toml**|**1**|**More benches**|
-|**crates/dr/Cargo.toml**|**2**|**https://signal.org/docs/specifications/doubleratchet/#security-considerations**|
-|**crates/dr/Cargo.toml**|**3**|**Examples**|
-|**crates/dr/Cargo.toml**|**4**|**Create documentation with valid links to library elements.**|
+|**crates/dr/src/lib.rs**|**4**|**the library. Make it less bloated, make the code**|
+|**crates/dr/src/clue.rs**|**5**|**Currently 64 bytes. Need to find out whether it should be a**|
+|**crates/dr/Cargo.toml**|**1**|**More**|
+|**crates/dr/Cargo.toml**|**2**|****|
+|**crates/dr/Cargo.toml**|**3**|****|
+|**crates/dr/Cargo.toml**|**4**|**Create documentation with valid links to library**|

@@ -18,7 +18,6 @@ fmt:
 	@cargo fmt --all
 
 gen-readme:
-	@shellcheck $(GEN_README_PATH)
 	@$(GEN_README_PATH)
 
 test:

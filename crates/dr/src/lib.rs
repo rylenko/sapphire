@@ -1,5 +1,7 @@
 /*!
 Double ratchet algorithm implementation for Sapphire.
+
+TODO: Rewrite the library. Make it less bloated, make the code cleaner.
 */
 
 #![feature(error_in_core)]

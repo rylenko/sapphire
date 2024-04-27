@@ -7,6 +7,7 @@
 	printf substr($2, 1, length($2) - 1)
 	printf "**|**";
 	$1=$2=$3=$4="";
+	--NF;
 	gsub(/^[ \t]+/, "", $0);
 	printf $0;
 	print "**|";
