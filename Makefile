@@ -1,9 +1,9 @@
 .POSIX:
 
 ROOT_DIR = $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
-GEN_README_PATH = $(ROOT_DIR)readme-gen/run
+CRATES_DIR = $(ROOT_DIR)crates/
 
-all: clippy fmt test gen-readme
+all: clippy fmt
 
 bench:
 	@cargo bench --workspace --verbose
@@ -14,13 +14,13 @@ check-fmt:
 clippy:
 	@cargo clippy --all-features --all-targets --tests --workspace -- -D warnings
 
+collect-todos:
+	@grep -rn "TODO" $(CRATES_DIR)
+
 fmt:
 	@cargo fmt --all
-
-gen-readme:
-	@$(GEN_README_PATH)
 
 test:
 	@cargo test --workspace
 
-.PHONY: all bench check-fmt clippy fmt gen-readme test
+.PHONY: all bench check-fmt collect-todos clippy fmt test
