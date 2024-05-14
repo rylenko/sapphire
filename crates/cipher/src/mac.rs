@@ -3,19 +3,19 @@ type MacImpl = hmac::Hmac<sha2::Sha256>;
 /// Authenticates concatenation of buffer and associated data using passed key.
 #[must_use]
 pub fn auth(key: &[u8], buf: &[u8], assoc: &[&[u8]]) -> [u8; 32] {
-	use hmac::Mac;
+	use hmac::Mac as _;
 
-	// Create HMAC instance using accepted key
+	// Create MAC instance using accepted key.
 	let mut mac = MacImpl::new_from_slice(key).expect("Any size is good.");
 
-	// Update HMAC with accepted buffer
+	// Update MAC with accepted buffer.
 	mac.update(buf);
-	// Update HMAC with accepted associated data
+	// Update MAC with accepted associated data.
 	for data in assoc {
 		mac.update(data);
 	}
 
-	// Finalize HMAC into return array
+	// Finalize MAC into return array.
 	mac.finalize().into_bytes().into()
 }
 

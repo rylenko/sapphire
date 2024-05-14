@@ -1,6 +1,6 @@
-type KdfInner = hkdf::Hkdf<sha2::Sha256>;
+type Kdf = hkdf::Hkdf<sha2::Sha256>;
 
-/// Derives  passed keys into authentication keys, encryption keys and nonces.
+/// Derives authentication keys, encryption keys and nonces using passed keys.
 #[derive(Clone, Eq, Hash, PartialEq, zeroize::ZeroizeOnDrop)]
 #[repr(transparent)]
 pub struct Deriver([u8; 88]);
@@ -27,7 +27,8 @@ impl Deriver {
 	///
 	/// Use accessors to get derived data.
 	pub fn derive(&mut self, key: &[u8]) {
-		KdfInner::new(Some(Self::SALT), key)
+		// Expand kdf to inner array.
+		Kdf::new(Some(Self::SALT), key)
 			.expand(Self::INFO, &mut self.0)
 			.expect("Output must have a good length.");
 	}
@@ -50,7 +51,7 @@ impl Deriver {
 #[cfg(test)]
 mod tests {
 	#[test]
-	fn test_kdf() {
+	fn test_deriver() {
 		let mut deriver = super::Deriver::new();
 		deriver.derive(b"kdf-key");
 		assert_eq!(deriver.auth_key(), [
