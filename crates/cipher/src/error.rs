@@ -6,7 +6,7 @@ Errors that can occur when working with encryption and decryption.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum Decrypt {
-	/// Use this when accepted authentication code is not equal to real one
+	/// Use this when accepted authentication code is not equal to real one.
 	Auth,
 }
 
