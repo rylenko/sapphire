@@ -1,13 +1,13 @@
-/// Encrypts `buf`fer using `key` and authenticates `buf`fer with `assoc`iated
-/// data.
+/// Encrypts `buf`fer using `key` and creates authentication code using
+/// encrypted `buf`fer and `assoc`iated data.
 ///
 /// Note that encryption and authentication occurs using keys derived from
 /// `key`.
 ///
 /// # Return
 ///
-/// Authentication of encrypted `buf`fer and `assoc`iated data using derived
-/// authentication key.
+/// Authentication code of encrypted `buf`fer and `assoc`iated data using
+/// derived authentication key.
 #[must_use]
 pub fn encrypt(key: &[u8], buf: &mut [u8], assoc: &[&[u8]]) -> [u8; 32] {
 	use chacha20::cipher::{KeyIvInit as _, StreamCipher as _};
@@ -23,8 +23,8 @@ pub fn encrypt(key: &[u8], buf: &mut [u8], assoc: &[&[u8]]) -> [u8; 32] {
 	)
 	.apply_keystream(buf);
 
-	// Authenticate encrypted buffer and associated data using derived
-	// authentication key.
+	// Create authentication code of encrypted buffer and associated data using
+	// derived authentication key.
 	super::mac::auth(deriver.auth_key(), buf, assoc)
 }
 
