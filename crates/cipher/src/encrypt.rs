@@ -1,13 +1,15 @@
-/// Encrypts `buf`fer using `key` and creates authentication code using
-/// encrypted `buf`fer and `assoc`iated data.
+/// Encrypts passed `buf`fer using passed `key` and authenticates encrypted
+/// `buf`fer with `assoc`iated data.
 ///
-/// Note that encryption and authentication occurs using keys derived from
-/// `key`.
+/// In more detail, it derives three values ​​using the `key`: an
+/// encryption key, an authentication key and a nonce. The `buf`fer is
+/// encrypted using an encryption key and a nonce. Authentication occurs using
+/// an authentication key, an encrypted `buf`fer and `assoc`iated data.
 ///
 /// # Return
 ///
-/// Authentication code of encrypted `buf`fer and `assoc`iated data using
-/// derived authentication key.
+/// Authentication code of encrypted `buf`fer and `assoc`iated data, which was
+/// obtained using derived authentication key.
 #[must_use]
 pub fn encrypt(key: &[u8], buf: &mut [u8], assoc: &[&[u8]]) -> [u8; 32] {
 	use chacha20::cipher::{KeyIvInit as _, StreamCipher as _};

@@ -1,8 +1,10 @@
 /// `auth`enticates encrypted `buf`fer and `assoc`iated data and decrypts
-/// `buf`fer using `key`.
+/// encrypted `buf`fer using `key`.
 ///
-/// Note that encryption and authentication occurs using keys derived from
-/// `key`.
+/// In more detail, it derives three values using the `key`: an encryption key,
+/// an authentication key and a nonce. Authentication occurs using an
+/// authentication key, an encrypted `buf`fer and `assoc`iated data. Then
+/// `buf`fer is decrypted using encryption key and a nonce.
 ///
 /// # Errors
 ///

@@ -44,7 +44,7 @@ impl Deriver {
 	#[inline]
 	#[must_use]
 	pub fn nonce(&self) -> &[u8] {
-		&self.0[64..]
+		&self.0[64..88]
 	}
 }
 
