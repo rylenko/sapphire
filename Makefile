@@ -11,6 +11,9 @@ bench:
 check-fmt:
 	@cargo fmt --all --check
 
+clean:
+	@rm -rf target/
+
 clippy:
 	@cargo clippy --all-features --all-targets --tests --workspace -- -D warnings
 

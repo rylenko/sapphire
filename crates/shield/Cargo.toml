@@ -2,6 +2,9 @@
 features = ["derive"]
 version = "0.7.34"
 
+[lints]
+workspace = true
+
 [package]
 name = "shield"
 version = "0.1.0"

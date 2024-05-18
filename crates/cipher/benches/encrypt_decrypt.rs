@@ -5,7 +5,7 @@ fn bench_encrypt_decrypt(c: &mut criterion::Criterion) {
 
 	c.bench_function("encrypt", |b| {
 		b.iter(|| {
-			let auth = cipher::encrypt(&[1; 128], &mut buf, &[
+			let tag = cipher::encrypt(&[1; 128], &mut buf, &[
 				&[0; 128],
 				&[100; 512],
 			]);
@@ -13,7 +13,7 @@ fn bench_encrypt_decrypt(c: &mut criterion::Criterion) {
 				&[1; 128],
 				&mut buf,
 				&[&[0; 128], &[100; 512]],
-				&auth,
+				tag,
 			)
 		});
 	});

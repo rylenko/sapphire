@@ -11,6 +11,13 @@ version = "0.12.1"
 [dependencies.sha2]
 version = "0.10.8"
 
+[dependencies.utils]
+path = "../utils"
+
+[dependencies.zerocopy]
+features = ["derive"]
+version = "0.7.34"
+
 [dependencies.zeroize]
 default-features = false
 features = ["derive"]
