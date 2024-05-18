@@ -14,24 +14,26 @@ type MacImpl = hmac::Hmac<sha2::Sha256>;
 	zerocopy::FromZeroes,
 )]
 #[repr(transparent)]
-pub struct Tag([u8; 12]);
+pub struct Tag([u8; Self::SIZE]);
 
 impl Tag {
-	utils::const_assert!(
-		_SIZE_ASSERT,
-		8 <= core::mem::size_of::<Self>()
-			&& core::mem::size_of::<Self>() <= 32
-	);
+	/// Size of tag cutted from message authentication code. Double Ratchet
+	/// specification requires it to be in [8; 32]. So there must be an
+	/// assertion.
+	const SIZE: usize = 12;
+
+	// Required by the Double Ratchet specification.
+	utils::const_assert!(_SIZE_ASSERT, 8 <= Self::SIZE && Self::SIZE <= 32);
 
 	/// Builds new tag using passed `key`, `buf`fer and `assoc`iated data.
 	#[must_use]
 	pub(crate) fn new(key: &[u8], buf: &[u8], assoc: &[&[u8]]) -> Self {
-		// Authenticate buffer and associated data using accepted key.
+		// Authenticate the buffer and associated data using accepted key.
 		let mac = auth(key, buf, assoc);
 
 		// Cut the tag from message authentication code.
-		let mut tag_bytes = [0; core::mem::size_of::<Self>()];
-		tag_bytes.copy_from_slice(&mac[..core::mem::size_of::<Self>()]);
+		let mut tag_bytes = [0; Self::SIZE];
+		tag_bytes.copy_from_slice(&mac[..Self::SIZE]);
 		Self(tag_bytes)
 	}
 }
@@ -65,6 +67,6 @@ mod tests {
 		];
 
 		let tag = super::Tag::new(b"key", b"buf", &[b"assoc1", b"assoc2"]);
-		assert_eq!(tag.0, MAC[..core::mem::size_of::<super::Tag>()]);
+		assert_eq!(tag.0, MAC[..super::Tag::SIZE]);
 	}
 }
