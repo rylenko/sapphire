@@ -1,3 +1,7 @@
+[dependencies.zerocopy]
+features = ["derive"]
+version = "0.7.34"
+
 [package]
 name = "shield"
 version = "0.1.0"
