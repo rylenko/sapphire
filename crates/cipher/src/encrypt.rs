@@ -31,5 +31,8 @@ pub fn encrypt(
 
 	// Create authentication tag of encrypted buffer and associated data using
 	// derived authentication key.
-	super::auth::Tag::new(deriver.auth_key(), buf, assoc)
+	{
+		let mac = super::auth::auth(deriver.auth_key(), buf, assoc);
+		super::auth::Tag::from(mac)
+	}
 }

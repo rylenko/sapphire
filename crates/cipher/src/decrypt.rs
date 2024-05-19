@@ -22,7 +22,11 @@ pub fn decrypt(
 	deriver.derive(key);
 
 	// Authenticate using derived authentication key
-	let expected_tag = super::auth::Tag::new(deriver.auth_key(), buf, assoc);
+	let expected_tag = {
+		let mac = super::auth::auth(deriver.auth_key(), buf, assoc);
+		super::auth::Tag::from(mac)
+	};
+	// Compare given and expected tags
 	if tag != expected_tag {
 		return Err(super::error::Decrypt::Auth);
 	}

@@ -11,4 +11,4 @@ mod encrypt;
 pub mod error;
 mod key;
 
-pub use {decrypt::decrypt, encrypt::encrypt};
+pub use {auth::Tag, decrypt::decrypt, encrypt::encrypt};

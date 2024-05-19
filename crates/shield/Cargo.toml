@@ -1,3 +1,6 @@
+[dependencies.cipher]
+path = "../cipher"
+
 [dependencies.zerocopy]
 features = ["derive"]
 version = "0.7.34"

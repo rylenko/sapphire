@@ -2,13 +2,17 @@
 The header of a new messages and its encrypted version.
 */
 
+mod encrypted;
+mod error;
+
+pub(crate) use encrypted::Encrypted;
+
 /// Header of the new message.
 ///
 /// Contains the sender's public key bytes, message number and previous sending
 /// chain messages count.
 #[derive(
 	Clone,
-	Copy,
 	Debug,
 	Eq,
 	Hash,
@@ -19,6 +23,7 @@ The header of a new messages and its encrypted version.
 )]
 #[repr(packed)]
 pub(crate) struct Header {
+	// TODO: Use (de)serializable public key struct here
 	public_key_bytes: [u8; 32],
 	msg_num: u32,
 	prev_chain_msgs_cnt: u32,
@@ -33,6 +38,13 @@ impl Header {
 		prev_chain_msgs_cnt: u32,
 	) -> Self {
 		Self { public_key_bytes, msg_num, prev_chain_msgs_cnt }
+	}
+
+	/// Encrypts current header using passed `key`.
+	#[inline]
+	#[must_use]
+	pub(crate) fn encrypt(&self, key: &[u8]) -> encrypted::Encrypted {
+		Encrypted::encrypt(key, self)
 	}
 
 	#[inline]
