@@ -37,8 +37,9 @@ impl Encrypted {
 	) -> Result<super::Header, super::error::Decrypt> {
 		use zerocopy::FromBytes as _;
 
-		// Decrypt encrypted header bytes.
+		// Copy encrypted bytes to not modify the struct
 		let mut bytes = self.bytes;
+		// Decrypt encrypted header bytes.
 		cipher::decrypt(key, &mut bytes, &[], self.tag)?;
 
 		// Deserialize decrypted bytes to the header struct.
