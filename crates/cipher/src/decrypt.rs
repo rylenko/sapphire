@@ -21,13 +21,9 @@ pub fn decrypt(
 	let mut deriver = super::key::Deriver::new();
 	deriver.derive(key);
 
-	// Authenticate using derived authentication key
-	let expected_tag = {
-		let mac = super::auth::auth(deriver.auth_key(), buf, assoc);
-		super::auth::Tag::from(mac)
-	};
 	// Compare given and expected tags
-	if tag != expected_tag {
+	let expected_mac = super::auth::mac(deriver.auth_key(), buf, assoc);
+	if tag != super::auth::Tag::from(expected_mac) {
 		return Err(super::error::Decrypt::Auth);
 	}
 
