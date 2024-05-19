@@ -3,7 +3,7 @@
 fn bench_encrypt_decrypt(c: &mut criterion::Criterion) {
 	let mut buf = [123; 4096];
 
-	c.bench_function("encrypt", |b| {
+	c.bench_function("encrypt_decrypt", |b| {
 		b.iter(|| {
 			let tag = cipher::encrypt(&[1; 128], &mut buf, &[
 				&[0; 128],

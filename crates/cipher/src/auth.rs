@@ -3,8 +3,8 @@ type MacImpl = hmac::Hmac<sha2::Sha256>;
 /// Authentication tag, which is equal to the cutted message authentication
 /// code.
 #[derive(
-	Copy,
 	Clone,
+	Copy,
 	Eq,
 	Debug,
 	Hash,
