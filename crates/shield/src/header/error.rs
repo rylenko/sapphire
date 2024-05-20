@@ -1,4 +1,4 @@
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum Decrypt {
 	Bytes(cipher::error::Decrypt),
