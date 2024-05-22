@@ -20,11 +20,9 @@ pub(crate) struct Encrypted {
 impl Encrypted {
 	#[must_use]
 	pub(super) fn encrypt(key: &[u8], header: &super::Header) -> Self {
-		use zerocopy::AsBytes as _;
-
 		// Copy header's bytes to an array.
 		let mut bytes = [0; core::mem::size_of::<super::Header>()];
-		bytes.copy_from_slice(header.as_bytes());
+		bytes.copy_from_slice(zerocopy::AsBytes::as_bytes(header));
 
 		// Encrypt header bytes and get the authentication tag.
 		let tag = cipher::encrypt(key, &mut bytes, &[]);
@@ -35,8 +33,6 @@ impl Encrypted {
 		&self,
 		key: &[u8],
 	) -> Result<super::Header, super::error::Decrypt> {
-		use zerocopy::FromBytes as _;
-
 		// Copy encrypted bytes to not modify the struct
 		let mut bytes = self.bytes;
 		// Decrypt encrypted header bytes.
@@ -46,7 +42,7 @@ impl Encrypted {
 		//
 		// We can unwrap here because decrypted bytes count is equal to header
 		// struct size.
-		Ok(super::Header::read_from(&bytes).unwrap())
+		Ok(zerocopy::FromBytes::read_from(&bytes).unwrap())
 	}
 }
 
@@ -54,16 +50,17 @@ impl Encrypted {
 mod tests {
 	#[test]
 	fn test_encrypt_decrypt() -> Result<(), super::super::error::Decrypt> {
-		use zerocopy::AsBytes as _;
-
 		// Test header encryption.
 		let header = super::super::Header::new([5; 32].into(), 123, 456);
 		let encrypted = super::Encrypted::encrypt(b"header-key", &header);
-		assert_ne!(encrypted.bytes, header.as_bytes());
+		assert_ne!(encrypted.bytes, zerocopy::AsBytes::as_bytes(&header));
 
 		// Test header decryption.
 		let decrypted = encrypted.decrypt(b"header-key")?;
-		assert_eq!(decrypted.public_key().as_bytes(), [5; 32]);
+		assert_eq!(
+			zerocopy::AsBytes::as_bytes(decrypted.public_key()),
+			[5; 32]
+		);
 		assert_eq!(decrypted.msg_num(), 123);
 		assert_eq!(decrypted.prev_chain_msgs_cnt(), 456);
 		Ok(())

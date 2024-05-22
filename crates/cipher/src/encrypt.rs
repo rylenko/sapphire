@@ -16,18 +16,16 @@ pub fn encrypt(
 	buf: &mut [u8],
 	assoc: &[&[u8]],
 ) -> super::auth::Tag {
-	use chacha20::cipher::{KeyIvInit as _, StreamCipher as _};
-
 	// Derive new encryption key, authentication key and nonce.
 	let mut deriver = super::key::Deriver::new();
 	deriver.derive(key);
 
 	// Encrypt buffer using derived encryption key and nonce.
-	chacha20::XChaCha20::new(
+	let mut cipher = <chacha20::XChaCha20 as chacha20::cipher::KeyIvInit>::new(
 		deriver.encrypt_key().into(),
 		deriver.nonce().into(),
-	)
-	.apply_keystream(buf);
+	);
+	chacha20::cipher::StreamCipher::apply_keystream(&mut cipher, buf);
 
 	// Create authentication tag of encrypted buffer and associated data using
 	// derived authentication key.

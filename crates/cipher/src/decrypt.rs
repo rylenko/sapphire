@@ -15,8 +15,6 @@ pub fn decrypt(
 	assoc: &[&[u8]],
 	tag: super::auth::Tag,
 ) -> Result<(), super::error::Decrypt> {
-	use chacha20::cipher::{KeyIvInit as _, StreamCipher as _};
-
 	// Derive new encryption key, authentication key and nonce.
 	let mut deriver = super::key::Deriver::new();
 	deriver.derive(key);
@@ -28,10 +26,10 @@ pub fn decrypt(
 	}
 
 	// Decrypt buffer using derived encryption key and nonce.
-	chacha20::XChaCha20::new(
+	let mut cipher = <chacha20::XChaCha20 as chacha20::cipher::KeyIvInit>::new(
 		deriver.encrypt_key().into(),
 		deriver.nonce().into(),
-	)
-	.apply_keystream(buf);
+	);
+	chacha20::cipher::StreamCipher::apply_keystream(&mut cipher, buf);
 	Ok(())
 }

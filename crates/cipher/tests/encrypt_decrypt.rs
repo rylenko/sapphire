@@ -1,7 +1,5 @@
 #[test]
 fn test_encrypt_and_decrypt() -> Result<(), cipher::error::Decrypt> {
-	use zerocopy::AsBytes as _;
-
 	// Encrypt
 	let mut buf = [111; 111];
 	let tag = cipher::encrypt(b"secret-key", &mut buf, &[b"a1", b"a2"]);
@@ -15,7 +13,7 @@ fn test_encrypt_and_decrypt() -> Result<(), cipher::error::Decrypt> {
 
 	// Decrypt with invalid authentication
 	let mut inval_auth = tag;
-	inval_auth.as_bytes_mut()[0] += 1;
+	zerocopy::AsBytes::as_bytes_mut(&mut inval_auth)[0] += 1;
 	assert!(cipher::decrypt(
 		b"secret-key",
 		&mut buf,
