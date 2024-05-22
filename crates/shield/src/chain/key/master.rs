@@ -23,9 +23,8 @@ impl Master {
 	/// [message]: super::msg::Msg
 	pub(in crate::chain) fn evolve(&mut self) -> super::msg::Msg {
 		// Create message authentication code builders using current key.
-		let mut master_mac =
-			<EvolveMacImpl as hmac::Mac>::new_from_slice(&self.0)
-				.expect("Any size is good.");
+		let mut master_mac: EvolveMacImpl =
+			hmac::Mac::new_from_slice(&self.0).expect("Any size is good.");
 		let mut msg_mac = master_mac.clone();
 
 		// Update builders with magic bytes mentioned in the specification.

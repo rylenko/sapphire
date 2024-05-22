@@ -40,8 +40,8 @@ impl From<MacBytes> for Tag {
 /// Authenticates `buf`fer and `assoc`iated data using `key`.
 pub(crate) fn mac(key: &[u8], buf: &[u8], assoc: &[&[u8]]) -> MacBytes {
 	// Create message authentication code builder using accepted key.
-	let mut mac = <MacImpl as hmac::Mac>::new_from_slice(key)
-		.expect("Any size is good.");
+	let mut mac: MacImpl =
+		hmac::Mac::new_from_slice(key).expect("Any size is good.");
 
 	// Update with accepted buffer.
 	hmac::Mac::update(&mut mac, buf);

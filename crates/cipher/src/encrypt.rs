@@ -21,7 +21,7 @@ pub fn encrypt(
 	deriver.derive(key);
 
 	// Encrypt buffer using derived encryption key and nonce.
-	let mut cipher = <chacha20::XChaCha20 as chacha20::cipher::KeyIvInit>::new(
+	let mut cipher: chacha20::XChaCha20 = chacha20::cipher::KeyIvInit::new(
 		deriver.encrypt_key().into(),
 		deriver.nonce().into(),
 	);
