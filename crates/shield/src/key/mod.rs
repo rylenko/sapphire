@@ -1,9 +1,7 @@
 /*!
-Keys to use in Double Ratchet implementation.
+User's public and private keys.
 */
 
-mod msg;
-mod msg_chain;
 mod public;
 
-pub use {msg::Msg, msg_chain::MsgChain, public::Public};
+pub use public::Public;

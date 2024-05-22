@@ -56,12 +56,12 @@ mod tests {
 	fn test_encrypt_decrypt() -> Result<(), super::super::error::Decrypt> {
 		use zerocopy::AsBytes as _;
 
-		// Test header encryption
+		// Test header encryption.
 		let header = super::super::Header::new([5; 32].into(), 123, 456);
 		let encrypted = super::Encrypted::encrypt(b"header-key", &header);
 		assert_ne!(encrypted.bytes, header.as_bytes());
 
-		// Test header decryption
+		// Test header decryption.
 		let decrypted = encrypted.decrypt(b"header-key")?;
 		assert_eq!(decrypted.public_key().as_bytes(), [5; 32]);
 		assert_eq!(decrypted.msg_num(), 123);
