@@ -51,7 +51,7 @@ pub(crate) fn mac(key: &[u8], buf: &[u8], assoc: &[&[u8]]) -> MacBytes {
 	}
 
 	// Finalize message authentication code into return array.
-	hmac::Mac::finalize(mac).into_bytes().into()
+	Into::into(hmac::Mac::finalize(mac).into_bytes())
 }
 
 #[cfg(test)]

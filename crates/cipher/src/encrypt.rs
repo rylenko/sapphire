@@ -22,8 +22,8 @@ pub fn encrypt(
 
 	// Encrypt buffer using derived encryption key and nonce.
 	let mut cipher: chacha20::XChaCha20 = chacha20::cipher::KeyIvInit::new(
-		deriver.encrypt_key().into(),
-		deriver.nonce().into(),
+		Into::into(deriver.encrypt_key()),
+		Into::into(deriver.nonce()),
 	);
 	chacha20::cipher::StreamCipher::apply_keystream(&mut cipher, buf);
 

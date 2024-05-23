@@ -51,7 +51,7 @@ mod tests {
 	#[test]
 	fn test_encrypt_decrypt() -> Result<(), super::super::error::Decrypt> {
 		// Test header encryption.
-		let header = super::super::Header::new([5; 32].into(), 123, 456);
+		let header = super::super::Header::new(Into::into([5; 32]), 123, 456);
 		let encrypted = super::Encrypted::encrypt(b"header-key", &header);
 		assert_ne!(encrypted.bytes, zerocopy::AsBytes::as_bytes(&header));
 

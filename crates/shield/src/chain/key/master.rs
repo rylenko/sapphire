@@ -33,14 +33,14 @@ impl Master {
 
 		// Finalize builders to get new key bytes.
 		let master_bytes: [u8; 32] =
-			hmac::Mac::finalize(master_mac).into_bytes().into();
+			Into::into(hmac::Mac::finalize(master_mac).into_bytes());
 		let msg_bytes: [u8; 32] =
-			hmac::Mac::finalize(msg_mac).into_bytes().into();
+			Into::into(hmac::Mac::finalize(msg_mac).into_bytes());
 
 		// Replace old master key bytes with new bytes.
 		self.0.copy_from_slice(&master_bytes);
 		// Create new message key.
-		msg_bytes.into()
+		Into::into(msg_bytes)
 	}
 }
 
