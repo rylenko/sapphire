@@ -1,9 +1,9 @@
 type EvolveMacImpl = hmac::Hmac<sha2::Sha256>;
 
-/// Chain key on which [send]ing and [receiving] chains are based.
+/// Chain key on which [sending] and [receiving] chains are based.
 ///
 /// [receiving]: super::recv::Recv
-/// [send]: super::send::Send
+/// [sending]: super::send::Send
 #[derive(Clone, Debug, Eq, Hash, PartialEq, zeroize::ZeroizeOnDrop)]
 #[repr(transparent)]
 pub(crate) struct Master([u8; 32]);
@@ -17,7 +17,7 @@ impl Master {
 	}
 
 	/// Creates new master and [message] keys based on the current master key.
-	/// The new master key is replaced with the old one and the [message] key
+	/// The old master key is replaced with the new one and the [message] key
 	/// is returned.
 	///
 	/// [message]: super::msg::Msg
