@@ -5,8 +5,8 @@
 	Eq,
 	Hash,
 	PartialEq,
-	zeroize::ZeroizeOnDrop,
 	zerocopy::AsBytes,
+	zeroize::ZeroizeOnDrop,
 )]
 #[repr(transparent)]
 pub struct Header([u8; 32]);
