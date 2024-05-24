@@ -15,11 +15,9 @@ pub struct Public([u8; 32]);
 
 impl Public {
 	/// Builds the new public key using passed `bytes`.
-	///
-	/// TODO: Remove this method and build public key only from private key.
 	#[inline]
 	#[must_use]
-	pub(crate) const fn new(bytes: [u8; 32]) -> Self {
+	pub const fn new(bytes: [u8; 32]) -> Self {
 		Self(bytes)
 	}
 }
