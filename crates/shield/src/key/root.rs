@@ -8,6 +8,9 @@ type EvolveKdf = hkdf::Hkdf<sha2::Sha256>;
 pub struct Root([u8; 32]);
 
 impl Root {
+	/// Creates new root key using passed `bytes`.
+	///
+	/// Is initially an agreed shared key.
 	#[inline]
 	#[must_use]
 	pub const fn new(bytes: [u8; 32]) -> Self {
@@ -20,7 +23,7 @@ impl Root {
 	///
 	/// [master]: super::master::Master
 	/// [header]: super::header::Header
-	pub(in crate::chain) fn evolve(
+	pub(crate) fn evolve(
 		&mut self,
 		input: &x25519_dalek::SharedSecret,
 	) -> (super::master::Master, super::header::Header) {

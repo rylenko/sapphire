@@ -2,7 +2,7 @@
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[repr(transparent)]
 pub(crate) struct Root {
-	key: super::key::Root,
+	key: crate::key::Root,
 }
 
 impl Root {
@@ -11,7 +11,7 @@ impl Root {
 	/// [`key`]: super::key::Root
 	#[inline]
 	#[must_use]
-	pub(crate) const fn new(key: super::key::Root) -> Self {
+	pub(crate) const fn new(key: crate::key::Root) -> Self {
 		Self { key }
 	}
 }
