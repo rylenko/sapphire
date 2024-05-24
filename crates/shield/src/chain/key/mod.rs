@@ -1,3 +1,7 @@
+/*!
+Keys that are produced by Double Ratchet chains.
+*/
+
 mod master;
 mod msg;
 mod root;
