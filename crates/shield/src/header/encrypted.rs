@@ -51,16 +51,13 @@ mod tests {
 	#[test]
 	fn test_encrypt_decrypt() -> Result<(), super::super::error::Decrypt> {
 		// Test header encryption.
-		let header = super::super::Header::new(Into::into([5; 32]), 123, 456);
+		let header = super::super::Header::new([5; 32], 123, 456);
 		let encrypted = super::Encrypted::encrypt(b"header-key", &header);
 		assert_ne!(encrypted.bytes, zerocopy::AsBytes::as_bytes(&header));
 
 		// Test header decryption.
 		let decrypted = encrypted.decrypt(b"header-key")?;
-		assert_eq!(
-			zerocopy::AsBytes::as_bytes(decrypted.public_key()),
-			[5; 32]
-		);
+		assert_eq!(decrypted.public_key_bytes(), &[5; 32]);
 		assert_eq!(decrypted.msg_num(), 123);
 		assert_eq!(decrypted.prev_chain_msgs_cnt(), 456);
 		Ok(())

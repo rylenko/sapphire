@@ -1,6 +1,9 @@
 [dependencies.cipher]
 path = "../cipher"
 
+[dependencies.hkdf]
+version = "0.12.4"
+
 [dependencies.hmac]
 version = "0.12.1"
 

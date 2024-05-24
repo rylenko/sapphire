@@ -4,7 +4,15 @@ type EvolveMacImpl = hmac::Hmac<sha2::Sha256>;
 ///
 /// [receiving]: super::recv::Recv
 /// [sending]: super::send::Send
-#[derive(Clone, Debug, Eq, Hash, PartialEq, zeroize::ZeroizeOnDrop)]
+#[derive(
+	Clone,
+	Debug,
+	Eq,
+	Hash,
+	PartialEq,
+	zeroize::ZeroizeOnDrop,
+	zerocopy::AsBytes,
+)]
 #[repr(transparent)]
 pub(crate) struct Master([u8; 32]);
 

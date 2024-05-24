@@ -23,7 +23,7 @@ pub(crate) use encrypted::Encrypted;
 )]
 #[repr(packed)]
 pub(crate) struct Header {
-	public_key: super::key::Public,
+	public_key_bytes: [u8; 32],
 	msg_num: u32,
 	prev_chain_msgs_cnt: u32,
 }
@@ -32,11 +32,11 @@ impl Header {
 	#[inline]
 	#[must_use]
 	pub(crate) const fn new(
-		public_key: super::key::Public,
+		public_key_bytes: [u8; 32],
 		msg_num: u32,
 		prev_chain_msgs_cnt: u32,
 	) -> Self {
-		Self { public_key, msg_num, prev_chain_msgs_cnt }
+		Self { public_key_bytes, msg_num, prev_chain_msgs_cnt }
 	}
 
 	/// Encrypts current header using passed `key`.
@@ -60,7 +60,7 @@ impl Header {
 
 	#[inline]
 	#[must_use]
-	pub(crate) const fn public_key(&self) -> &super::key::Public {
-		&self.public_key
+	pub(crate) const fn public_key_bytes(&self) -> &[u8; 32] {
+		&self.public_key_bytes
 	}
 }
