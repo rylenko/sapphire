@@ -4,8 +4,8 @@ pub(crate) struct Send {
 	key: Option<crate::key::Master>,
 	header_key: Option<crate::key::Header>,
 	next_header_key: crate::key::Header,
-	next_msg_num: u32,
-	prev_msgs_cnt: u32,
+	next_message_num: u32,
+	prev_chain_messages_count: u32,
 }
 
 impl Send {
@@ -21,8 +21,8 @@ impl Send {
 			key,
 			header_key,
 			next_header_key,
-			next_msg_num: 0,
-			prev_msgs_cnt: 0,
+			next_message_num: 0,
+			prev_chain_messages_count: 0,
 		}
 	}
 }

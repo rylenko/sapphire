@@ -29,6 +29,7 @@ impl Master {
 	/// is returned.
 	///
 	/// [message]: super::msg::Msg
+	#[must_use]
 	pub(crate) fn evolve(&mut self) -> super::msg::Msg {
 		// Create message authentication code builders using current key.
 		let mut master_mac: EvolveMacImpl =

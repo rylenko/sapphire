@@ -14,4 +14,17 @@ impl Root {
 	pub(crate) const fn new(key: crate::key::Root) -> Self {
 		Self { key }
 	}
+
+	/// Moves root chain forward using key [evolving]. So see root key
+	/// [evolving] method for more.
+	///
+	/// [evolving]: crate::key::Root::evolve
+	#[inline]
+	#[must_use]
+	pub(crate) fn forward(
+		&mut self,
+		input: &x25519_dalek::SharedSecret,
+	) -> (crate::key::Master, crate::key::Header) {
+		self.key.evolve(input)
+	}
 }

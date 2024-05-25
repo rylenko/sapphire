@@ -23,6 +23,7 @@ impl Root {
 	///
 	/// [master]: super::master::Master
 	/// [header]: super::header::Header
+	#[must_use]
 	pub(crate) fn evolve(
 		&mut self,
 		input: &x25519_dalek::SharedSecret,
