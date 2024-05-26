@@ -9,9 +9,9 @@
 	zeroize::ZeroizeOnDrop,
 )]
 #[repr(transparent)]
-pub(crate) struct Msg([u8; 32]);
+pub(crate) struct Message([u8; 32]);
 
-impl Msg {
+impl Message {
 	/// Builds the new message key using passed `bytes`.
 	#[inline]
 	#[must_use]
@@ -20,7 +20,7 @@ impl Msg {
 	}
 }
 
-impl From<[u8; 32]> for Msg {
+impl From<[u8; 32]> for Message {
 	#[inline]
 	#[must_use]
 	fn from(bytes: [u8; 32]) -> Self {

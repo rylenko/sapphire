@@ -58,8 +58,8 @@ mod tests {
 		// Test header decryption.
 		let decrypted = encrypted.decrypt(b"header-key")?;
 		assert_eq!(decrypted.public_key_bytes(), &[5; 32]);
-		assert_eq!(decrypted.msg_num(), 123);
-		assert_eq!(decrypted.prev_chain_msgs_cnt(), 456);
+		assert_eq!(decrypted.message_num(), 123);
+		assert_eq!(decrypted.prev_send_chain_messages_count(), 456);
 		Ok(())
 	}
 }

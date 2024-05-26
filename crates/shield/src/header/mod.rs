@@ -24,19 +24,21 @@ pub(crate) use encrypted::Encrypted;
 #[repr(packed)]
 pub(crate) struct Header {
 	public_key_bytes: [u8; 32],
-	msg_num: u32,
-	prev_chain_msgs_cnt: u32,
+	message_num: u32,
+	prev_send_chain_messages_count: u32,
 }
 
 impl Header {
+	/// Creates new header, which contains public key bytes, message number and
+	/// previous sending chain message count.
 	#[inline]
 	#[must_use]
 	pub(crate) const fn new(
 		public_key_bytes: [u8; 32],
-		msg_num: u32,
-		prev_chain_msgs_cnt: u32,
+		message_num: u32,
+		prev_send_chain_messages_count: u32,
 	) -> Self {
-		Self { public_key_bytes, msg_num, prev_chain_msgs_cnt }
+		Self { public_key_bytes, message_num, prev_send_chain_messages_count }
 	}
 
 	/// Encrypts current header using passed `key`.
@@ -48,14 +50,14 @@ impl Header {
 
 	#[inline]
 	#[must_use]
-	pub(crate) const fn msg_num(&self) -> u32 {
-		self.msg_num
+	pub(crate) const fn message_num(&self) -> u32 {
+		self.message_num
 	}
 
 	#[inline]
 	#[must_use]
-	pub(crate) const fn prev_chain_msgs_cnt(&self) -> u32 {
-		self.prev_chain_msgs_cnt
+	pub(crate) const fn prev_send_chain_messages_count(&self) -> u32 {
+		self.prev_send_chain_messages_count
 	}
 
 	#[inline]
