@@ -1,3 +1,9 @@
+# TODO: [Thought] Send data once every certain period. If there is no data,
+# send an empty encrypted packet. It will help:
+# 1. Inactivity traffic is indistinguishable from non-action traffic.
+# 2. In the client app, you can see who is online now. At the same time, the
+#    user can prohibit showing that he is online.
+
 [package]
 name = "sapphire"
 version = "0.1.0"

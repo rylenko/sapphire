@@ -1,7 +1,6 @@
 .POSIX:
 
 ROOT_DIR = $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
-CRATES_DIR = $(ROOT_DIR)crates/
 
 all: clippy fmt
 
@@ -18,7 +17,11 @@ clippy:
 	@cargo clippy --all-features --all-targets --tests --workspace -- -D warnings
 
 collect-todos:
-	@grep -rn "TODO" $(CRATES_DIR)
+	@grep -rn \
+		--exclude=Makefile \
+		--exclude-dir=.git \
+		--exclude-dir=target \
+		"TODO" $(ROOT_DIR)
 
 fmt:
 	@cargo fmt --all
