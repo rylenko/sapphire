@@ -109,6 +109,7 @@ impl Cipher {
 	/// Encrypts passed `buf`fer using derived encryption key and authenticates
 	/// encrypted `buf`fer with `assoc`iated data using derived authentication
 	/// key.
+	#[must_use]
 	pub fn encrypt(&mut self, buf: &mut [u8], assoc: &[&[u8]]) -> auth::Tag {
 		// Encrypt accepted buffer using inner cipher.
 		chacha20::cipher::StreamCipher::apply_keystream(&mut self.inner, buf);
