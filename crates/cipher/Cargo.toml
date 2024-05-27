@@ -37,6 +37,3 @@ edition = "2021"
 [[bench]]
 harness = false
 name = "encrypt_decrypt"
-
-[[test]]
-name = "encrypt_decrypt"

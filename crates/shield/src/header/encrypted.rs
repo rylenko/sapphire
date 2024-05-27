@@ -2,13 +2,13 @@
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum DecryptError {
-	Bytes(cipher::decrypt::Error),
+	Bytes(cipher::DecryptError),
 }
 
-impl From<cipher::decrypt::Error> for DecryptError {
+impl From<cipher::DecryptError> for DecryptError {
 	#[inline]
 	#[must_use]
-	fn from(e: cipher::decrypt::Error) -> Self {
+	fn from(e: cipher::DecryptError) -> Self {
 		Self::Bytes(e)
 	}
 }
@@ -58,7 +58,8 @@ impl Encrypted {
 		bytes.copy_from_slice(zerocopy::AsBytes::as_bytes(header));
 
 		// Encrypt header bytes and get the authentication tag.
-		let tag = cipher::encrypt(key, &mut bytes, &[]);
+		let mut cipher = cipher::Cipher::new(key);
+		let tag = cipher.encrypt(&mut bytes, &[]);
 		Self { bytes, tag }
 	}
 
@@ -69,7 +70,8 @@ impl Encrypted {
 		// Copy encrypted bytes to not modify the struct
 		let mut bytes = self.bytes;
 		// Decrypt encrypted header bytes.
-		cipher::decrypt(key, &mut bytes, &[], self.tag)?;
+		let mut cipher = cipher::Cipher::new(key);
+		cipher.decrypt(&mut bytes, &[], self.tag)?;
 
 		// Deserialize decrypted bytes to the header struct.
 		//
