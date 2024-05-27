@@ -1,5 +1,5 @@
 #[test]
-fn test_encrypt_and_decrypt() -> Result<(), cipher::error::Decrypt> {
+fn test_encrypt_decrypt() -> Result<(), cipher::decrypt::Error> {
 	// Encrypt
 	let mut buf = [111; 111];
 	let tag = cipher::encrypt(b"secret-key", &mut buf, &[b"a1", b"a2"]);

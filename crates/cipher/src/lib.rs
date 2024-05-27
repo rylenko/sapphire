@@ -6,9 +6,8 @@ Auxiliary things for encrypting and decrypting data.
 #![no_std]
 
 mod auth;
-mod decrypt;
+pub mod decrypt;
 mod encrypt;
-pub mod error;
 mod key;
 
 pub use {auth::Tag, decrypt::decrypt, encrypt::encrypt};

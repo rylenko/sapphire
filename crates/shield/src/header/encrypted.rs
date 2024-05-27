@@ -1,3 +1,36 @@
+/// Encrypted header decryption error.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum DecryptError {
+	Bytes(cipher::decrypt::Error),
+}
+
+impl From<cipher::decrypt::Error> for DecryptError {
+	#[inline]
+	#[must_use]
+	fn from(e: cipher::decrypt::Error) -> Self {
+		Self::Bytes(e)
+	}
+}
+
+impl core::error::Error for DecryptError {
+	#[inline]
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			Self::Bytes(ref e) => Some(e),
+		}
+	}
+}
+
+impl core::fmt::Display for DecryptError {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::Bytes(..) => write!(f, "Failed to decrypt header bytes."),
+		}
+	}
+}
+
 /// Encrypted version of the message [`Header`].
 ///
 /// [`Header`]: super::Header
@@ -32,7 +65,7 @@ impl Encrypted {
 	pub(crate) fn decrypt(
 		&self,
 		key: &[u8],
-	) -> Result<super::Header, super::error::Decrypt> {
+	) -> Result<super::Header, DecryptError> {
 		// Copy encrypted bytes to not modify the struct
 		let mut bytes = self.bytes;
 		// Decrypt encrypted header bytes.
@@ -49,7 +82,7 @@ impl Encrypted {
 #[cfg(test)]
 mod tests {
 	#[test]
-	fn test_encrypt_decrypt() -> Result<(), super::super::error::Decrypt> {
+	fn test_encrypt_decrypt() -> Result<(), super::DecryptError> {
 		// Test header encryption.
 		let header = super::super::Header::new([5; 32], 123, 456);
 		let encrypted = super::Encrypted::encrypt(b"header-key", &header);

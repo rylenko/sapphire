@@ -3,7 +3,6 @@ The header of a new messages and its encrypted version.
 */
 
 mod encrypted;
-mod error;
 
 pub(crate) use encrypted::Encrypted;
 

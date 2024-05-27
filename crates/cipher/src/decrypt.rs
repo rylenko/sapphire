@@ -1,3 +1,34 @@
+/*!
+Decryption function and error type.
+*/
+
+/// Decryption error.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum Error {
+	/// Accepted authentication code is not equal to real one.
+	Auth,
+}
+
+impl core::error::Error for Error {
+	#[inline]
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			Self::Auth => None,
+		}
+	}
+}
+
+impl core::fmt::Display for Error {
+	#[inline]
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::Auth => write!(f, "Authentication codes are not equal."),
+		}
+	}
+}
+
 /// `auth`enticates encrypted `buf`fer and `assoc`iated data and decrypts
 /// encrypted `buf`fer using `key`.
 ///
@@ -14,7 +45,7 @@ pub fn decrypt(
 	buf: &mut [u8],
 	assoc: &[&[u8]],
 	tag: super::auth::Tag,
-) -> Result<(), super::error::Decrypt> {
+) -> Result<(), Error> {
 	// Derive new encryption key, authentication key and nonce.
 	let mut deriver = super::key::Deriver::new();
 	deriver.derive(key);
@@ -22,7 +53,7 @@ pub fn decrypt(
 	// Compare given and expected tags
 	let expected_mac = super::auth::mac(deriver.auth_key(), buf, assoc);
 	if tag != super::auth::Tag::from(expected_mac) {
-		return Err(super::error::Decrypt::Auth);
+		return Err(Error::Auth);
 	}
 
 	// Decrypt buffer using derived encryption key and nonce.
