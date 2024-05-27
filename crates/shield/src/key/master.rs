@@ -20,7 +20,7 @@ impl Master {
 	/// Builds the new chain key using passed `bytes`.
 	#[inline]
 	#[must_use]
-	pub(super) const fn new(bytes: [u8; 32]) -> Self {
+	pub(crate) const fn new(bytes: [u8; 32]) -> Self {
 		Self(bytes)
 	}
 

@@ -15,9 +15,10 @@ impl Root {
 		Self { key }
 	}
 
-	/// Moves root chain forward using key [evolving]. So see root key
+	/// Moves root chain forward using [root key] [evolving]. So see [root key]
 	/// [evolving] method for more.
 	///
+	/// [root key]: crate::key::Root
 	/// [evolving]: crate::key::Root::evolve
 	#[inline]
 	#[must_use]
