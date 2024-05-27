@@ -58,8 +58,7 @@ impl Encrypted {
 		bytes.copy_from_slice(zerocopy::AsBytes::as_bytes(header));
 
 		// Encrypt header bytes and get the authentication tag.
-		let mut cipher = cipher::Cipher::new(key);
-		let tag = cipher.encrypt(&mut bytes, &[]);
+		let tag = cipher::Cipher::new(key).encrypt(&mut bytes, &[]);
 		Self { bytes, tag }
 	}
 
@@ -70,8 +69,7 @@ impl Encrypted {
 		// Copy encrypted bytes to not modify the struct
 		let mut bytes = self.bytes;
 		// Decrypt encrypted header bytes.
-		let mut cipher = cipher::Cipher::new(key);
-		cipher.decrypt(&mut bytes, &[], self.tag)?;
+		cipher::Cipher::new(key).decrypt(&mut bytes, &[], self.tag)?;
 
 		// Deserialize decrypted bytes to the header struct.
 		//
