@@ -5,7 +5,7 @@ pub enum ForwardError {
 	/// No [`Master`] key to move chain forward.
 	///
 	/// [`Master`]: crate::key::Master
-	NoKey,
+	NoMasterKey,
 }
 
 impl core::error::Error for ForwardError {
@@ -13,7 +13,7 @@ impl core::error::Error for ForwardError {
 	#[must_use]
 	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		match self {
-			Self::NoKey => None,
+			Self::NoMasterKey => None,
 		}
 	}
 }
@@ -22,7 +22,7 @@ impl core::fmt::Display for ForwardError {
 	#[inline]
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::NoKey => {
+			Self::NoMasterKey => {
 				write!(f, "There is no master key to move chain forward.")
 			}
 		}
@@ -32,7 +32,7 @@ impl core::fmt::Display for ForwardError {
 /// Sending chain of Double Ratchet algorithm.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct Send {
-	key: Option<crate::key::Master>,
+	master_key: Option<crate::key::Master>,
 	header_key: Option<crate::key::Header>,
 	next_header_key: crate::key::Header,
 	next_message_num: u32,
@@ -44,12 +44,12 @@ impl Send {
 	#[inline]
 	#[must_use]
 	pub(crate) const fn new(
-		key: Option<crate::key::Master>,
+		master_key: Option<crate::key::Master>,
 		header_key: Option<crate::key::Header>,
 		next_header_key: crate::key::Header,
 	) -> Self {
 		Self {
-			key,
+			master_key,
 			header_key,
 			next_header_key,
 			next_message_num: 0,
@@ -66,8 +66,11 @@ impl Send {
 		&mut self,
 	) -> Result<crate::key::Message, ForwardError> {
 		// Try to retrieve current master key and evolve it to get message key.
-		let message_key =
-			self.key.as_mut().ok_or(ForwardError::NoKey)?.evolve();
+		let message_key = self
+			.master_key
+			.as_mut()
+			.ok_or(ForwardError::NoMasterKey)?
+			.evolve();
 
 		// Increase next message number because new message key evolved.
 		self.next_message_num += 1;
@@ -86,10 +89,10 @@ impl Send {
 	/// [header key]: crate::key::Header
 	pub(crate) fn upgrade(
 		&mut self,
-		key: crate::key::Master,
+		master_key: crate::key::Master,
 		next_header_key: crate::key::Header,
 	) {
-		self.key = Some(key);
+		self.master_key = Some(master_key);
 		self.header_key = Some(core::mem::replace(
 			&mut self.next_header_key,
 			next_header_key,
@@ -111,12 +114,12 @@ mod tests {
 
 		// Test success of forward moving.
 		assert!(chain.forward().is_ok());
-		assert_ne!(chain.key, Some(crate::key::Master::new([0; 32])));
+		assert_ne!(chain.master_key, Some(crate::key::Master::new([0; 32])));
 		assert_eq!(chain.next_message_num, 1);
 
 		// Test forward moving with no master key.
-		chain.key = None;
-		assert_eq!(chain.forward(), Err(super::ForwardError::NoKey));
+		chain.master_key = None;
+		assert_eq!(chain.forward(), Err(super::ForwardError::NoMasterKey));
 	}
 
 	#[test]
@@ -137,7 +140,7 @@ mod tests {
 			crate::key::Master::new([10; 32]),
 			crate::key::Header::new([11; 32]),
 		);
-		assert_eq!(chain.key, Some(crate::key::Master::new([10; 32])));
+		assert_eq!(chain.master_key, Some(crate::key::Master::new([10; 32])));
 		assert_eq!(chain.header_key, Some(crate::key::Header::new([2; 32])));
 		assert_eq!(chain.next_header_key, crate::key::Header::new([11; 32]));
 		assert_eq!(chain.next_message_num, 0);
