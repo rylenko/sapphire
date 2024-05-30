@@ -31,7 +31,7 @@ impl core::fmt::Display for ForwardError {
 
 /// Sending chain of Double Ratchet algorithm.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub(crate) struct Send {
+pub(crate) struct Sending {
 	master_key: Option<crate::key::Master>,
 	header_key: Option<crate::key::Header>,
 	next_header_key: crate::key::Header,
@@ -39,7 +39,7 @@ pub(crate) struct Send {
 	prev_chain_messages_count: u32,
 }
 
-impl Send {
+impl Sending {
 	/// Creates new sending chain using passed keys.
 	#[inline]
 	#[must_use]
@@ -106,7 +106,7 @@ impl Send {
 mod tests {
 	#[test]
 	fn test_forward() {
-		let mut chain = super::Send::new(
+		let mut chain = super::Sending::new(
 			Some(crate::key::Master::new([0; 32])),
 			Some(crate::key::Header::new([1; 32])),
 			crate::key::Header::new([2; 32]),
@@ -124,7 +124,7 @@ mod tests {
 
 	#[test]
 	fn test_upgrade() -> Result<(), super::ForwardError> {
-		let mut chain = super::Send::new(
+		let mut chain = super::Sending::new(
 			Some(crate::key::Master::new([0; 32])),
 			Some(crate::key::Header::new([1; 32])),
 			crate::key::Header::new([2; 32]),

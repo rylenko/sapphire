@@ -2,6 +2,6 @@
 Root, sending and receiving chains of Double Ratchet state.
 */
 
-mod recv;
+mod receiving;
 mod root;
-mod send;
+mod sending;
