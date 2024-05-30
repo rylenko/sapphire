@@ -1,4 +1,4 @@
-type EvolveMacImpl = hmac::Hmac<sha2::Sha256>;
+type MacImpl = hmac::Hmac<sha2::Sha256>;
 
 /// Chain key on which [sending] and [receiving] chains are based.
 ///
@@ -31,25 +31,29 @@ impl Master {
 	/// [message]: super::message::Message
 	#[must_use]
 	pub(crate) fn evolve(&mut self) -> super::message::Message {
-		// Create message authentication code builders using current key.
-		let mut master_mac: EvolveMacImpl =
+		// Create message authenticator based on the current key.
+		let mut mac: MacImpl =
 			hmac::Mac::new_from_slice(&self.0).expect("Any size is good.");
-		let mut message_mac = master_mac.clone();
 
-		// Update builders with magic bytes mentioned in the specification.
-		hmac::Mac::update(&mut master_mac, &[0x2]);
-		hmac::Mac::update(&mut message_mac, &[0x1]);
-
-		// Finalize builders to get new key bytes.
+		// Update authenticator with magic master byte specified by the
+		// protocol.
+		hmac::Mac::update(&mut mac, &[0x2]);
+		// Finalize new master key bytes into an array. Do not forget to reset
+		// authenticator to derive new message key later.
 		let master_bytes: [u8; 32] =
-			Into::into(hmac::Mac::finalize(master_mac).into_bytes());
+			Into::into(hmac::Mac::finalize_reset(&mut mac).into_bytes());
+
+		// Update authenticator with magic message byte specified by the
+		// protocol.
+		hmac::Mac::update(&mut mac, &[0x1]);
+		// Finalize new message key bytes into an array.
 		let message_bytes: [u8; 32] =
-			Into::into(hmac::Mac::finalize(message_mac).into_bytes());
+			Into::into(hmac::Mac::finalize(mac).into_bytes());
 
 		// Replace old master key bytes with new bytes.
-		self.0.copy_from_slice(&master_bytes);
-		// Create new message key.
-		Into::into(message_bytes)
+		self.0 = master_bytes;
+		// Return evolved new message key.
+		super::message::Message::new(message_bytes)
 	}
 }
 
