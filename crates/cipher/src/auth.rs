@@ -37,21 +37,39 @@ impl From<MacBytes> for Tag {
 	}
 }
 
-/// Authenticates `buf`fer and `assoc`iated data using `key`.
-pub(crate) fn mac(key: &[u8], buf: &[u8], assoc: &[&[u8]]) -> MacBytes {
-	// Create message authentication code builder using accepted key.
-	let mut mac: MacImpl =
-		hmac::Mac::new_from_slice(key).expect("Any size is good.");
+/// Message authenticator to authenticate buffer and associated data using
+/// authentication key.
+#[derive(Clone, Debug)]
+#[repr(transparent)]
+pub(crate) struct Mac {
+	inner: MacImpl,
+}
 
-	// Update with accepted buffer.
-	hmac::Mac::update(&mut mac, buf);
-	// Update with accepted associated data.
-	for data in assoc {
-		hmac::Mac::update(&mut mac, data);
+impl Mac {
+	/// Creates new message authenticator based on passed `key`.
+	#[must_use]
+	pub(crate) fn new(key: &[u8]) -> Self {
+		Self {
+			inner: hmac::Mac::new_from_slice(key).expect("Any size is good."),
+		}
 	}
 
-	// Finalize message authentication code into return array.
-	Into::into(hmac::Mac::finalize(mac).into_bytes())
+	/// Authenticates `buf`fer and `assoc`iated data using authentication key.
+	///
+	/// After using this method, the authenticator returns to its initial
+	/// state.
+	#[must_use]
+	pub(crate) fn auth(&mut self, buf: &[u8], assoc: &[&[u8]]) -> MacBytes {
+		// Update with accepted buffer.
+		hmac::Mac::update(&mut self.inner, buf);
+		// Update with accepted associated data.
+		for assoc_part in assoc {
+			hmac::Mac::update(&mut self.inner, assoc_part);
+		}
+
+		// Drain message authentication code into return bytes.
+		Into::into(hmac::Mac::finalize_reset(&mut self.inner).into_bytes())
+	}
 }
 
 #[cfg(test)]
@@ -67,7 +85,10 @@ mod tests {
 
 	#[test]
 	fn test_mac() {
-		assert_eq!(super::mac(KEY, BUF, ASSOC), MAC);
+		let mut mac = super::Mac::new(KEY);
+		// Test authenticator output and test reset after each authentication.
+		assert_eq!(mac.auth(BUF, ASSOC), MAC);
+		assert_eq!(mac.auth(BUF, ASSOC), MAC);
 	}
 
 	#[test]

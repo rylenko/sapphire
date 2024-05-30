@@ -10,7 +10,7 @@ mod auth;
 pub use auth::Tag;
 
 /// Key derivation function used in cipher struct to derive keys.
-type CipherKdf = hkdf::Hkdf<sha2::Sha256>;
+type KdfImpl = hkdf::Hkdf<sha2::Sha256>;
 
 /// Decryption error.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -43,10 +43,9 @@ impl core::fmt::Display for DecryptError {
 ///
 /// [encrypt]: Self::encrypt
 /// [decrypt]: Self::decrypt
-#[derive(zeroize::ZeroizeOnDrop)]
 pub struct Cipher {
 	inner: chacha20::XChaCha20,
-	auth_key: [u8; 32],
+	mac: auth::Mac,
 }
 
 impl Cipher {
@@ -66,7 +65,7 @@ impl Cipher {
 	pub fn new(key: &[u8]) -> Self {
 		// Derive new encryption key, authentication key and nonce.
 		let mut keys = zeroize::Zeroizing::new([0; 88]);
-		CipherKdf::new(Some(Self::KDF_SALT), key)
+		KdfImpl::new(Some(Self::KDF_SALT), key)
 			.expand(Self::KDF_INFO, keys.as_mut())
 			.expect("Output must have a good length.");
 
@@ -75,12 +74,10 @@ impl Cipher {
 			Into::into(&keys[..32]),
 			Into::into(&keys[64..88]),
 		);
-
-		// Copy authentication key to an array.
-		let mut auth_key = [0; 32];
-		auth_key.copy_from_slice(&keys[32..64]);
-
-		Self { inner, auth_key }
+		// Create message authenticator based on the derived authentication
+		// key.
+		let mac = auth::Mac::new(&keys[32..64]);
+		Self { inner, mac }
 	}
 
 	/// `auth`enticates encrypted `buf`fer and `assoc`iated data using derived
@@ -97,7 +94,7 @@ impl Cipher {
 		tag: auth::Tag,
 	) -> Result<(), DecryptError> {
 		// Compare given and expected tags.
-		if tag != Tag::from(auth::mac(&self.auth_key, buf, assoc)) {
+		if tag != Tag::from(self.mac.auth(buf, assoc)) {
 			return Err(DecryptError::Auth);
 		}
 
@@ -116,7 +113,7 @@ impl Cipher {
 
 		// Create authentication tag of encrypted buffer and associated data
 		// using derived authentication key.
-		Tag::from(auth::mac(&self.auth_key, buf, assoc))
+		Tag::from(self.mac.auth(buf, assoc))
 	}
 
 	/// Seeks to the specified position of the cipher.
