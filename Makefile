@@ -1,6 +1,7 @@
 .POSIX:
 
 ROOT_DIR = $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+DESKTOP_CRATE = desktop-iced
 
 all: clippy fmt
 
@@ -25,6 +26,9 @@ collect-todos:
 
 fmt:
 	@cargo fmt --all
+
+run:
+	@cargo run -p $(DESKTOP_CRATE)
 
 test:
 	@cargo test --workspace

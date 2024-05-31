@@ -3,16 +3,14 @@
 # 1. Inactivity traffic is indistinguishable from non-action traffic.
 # 2. In the client app, you can see who is online now. At the same time, the
 #    user can prohibit showing that he is online.
-
-[package]
-name = "sapphire"
-version = "0.1.0"
-edition = "2021"
+#
+# TODO: tracing or logs in all crates.
 
 [workspace]
 members = [
 	"crates/*",
 ]
+resolver = "2"
 
 [workspace.lints.clippy]
 complexity = "deny"
@@ -25,7 +23,3 @@ suspicious = "deny"
 [workspace.lints.rust]
 missing_docs = "deny"
 unsafe_code = "deny"
-
-[[bin]]
-path = "_bin_mock/main.rs"
-name = "_bin_mock"

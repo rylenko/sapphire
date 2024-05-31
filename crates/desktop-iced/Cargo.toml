@@ -1,0 +1,11 @@
+[dependencies.iced]
+features = ["advanced"]
+version = "0.12.1"
+
+[lints]
+workspace = true
+
+[package]
+name = "desktop-iced"
+version = "0.1.0"
+edition = "2021"
