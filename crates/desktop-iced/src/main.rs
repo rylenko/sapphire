@@ -1,5 +1,7 @@
 /*!
 Sapphire desktop application built on [`iced`].
+
+TODO: documentation and commnents.
 */
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -10,6 +12,34 @@ enum Message {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 struct Application;
+
+impl Application {
+	#[must_use]
+	fn create_header(
+	) -> iced::widget::Row<'static, <Self as iced::Application>::Message> {
+		iced::widget::row![
+			Self::create_header_exit_button(),
+			Self::create_header_title(),
+		]
+		.padding(10)
+		.spacing(8)
+	}
+
+	#[must_use]
+	fn create_header_exit_button(
+	) -> iced::widget::Button<'static, <Self as iced::Application>::Message> {
+		iced::widget::button(iced::widget::text("Exit").size(10))
+			.on_press(<Self as iced::Application>::Message::Exit)
+	}
+
+	#[must_use]
+	fn create_header_title() -> iced::widget::Text<'static> {
+		iced::widget::text("Sapphire 💎")
+			.size(15)
+			// To enable emoji support.
+			.shaping(iced::widget::text::Shaping::Advanced)
+	}
+}
 
 impl iced::Application for Application {
 	type Executor = iced::executor::Default;
@@ -47,15 +77,7 @@ impl iced::Application for Application {
 
 	#[must_use]
 	fn view(&self) -> iced::Element<Self::Message> {
-		let column = iced::widget::column![
-			iced::widget::text("Sapphire 💎")
-				.size(15)
-				.shaping(iced::widget::text::Shaping::Advanced)
-				.horizontal_alignment(iced::alignment::Horizontal::Center),
-			iced::widget::button("Exit").on_press(Self::Message::Exit)
-		]
-		.padding(10);
-		Into::into(column)
+		Into::into(Self::create_header())
 	}
 }
 
