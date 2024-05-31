@@ -5,6 +5,7 @@
 #    user can prohibit showing that he is online.
 #
 # TODO: tracing or logs in all crates.
+# TODO: installation in the Makefile. Do not forget to make production builds.
 
 [workspace]
 members = [
