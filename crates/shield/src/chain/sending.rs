@@ -112,12 +112,12 @@ mod tests {
 			crate::key::Header::new([2; 32]),
 		);
 
-		// Test success of forward moving.
+		// Test success of moving forward.
 		assert!(chain.forward().is_ok());
 		assert_ne!(chain.master_key, Some(crate::key::Master::new([0; 32])));
 		assert_eq!(chain.next_message_num, 1);
 
-		// Test forward moving with no master key.
+		// Test moving forward without master key.
 		chain.master_key = None;
 		assert_eq!(chain.forward(), Err(super::ForwardError::NoMasterKey));
 	}
