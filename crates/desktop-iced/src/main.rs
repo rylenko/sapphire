@@ -4,9 +4,10 @@ Sapphire desktop application built on [`iced`].
 TODO: documentation and commnents.
 */
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 struct Application {
-	theme: Theme,
+	page: Page,
+	theme: iced::Theme,
 }
 
 impl Application {
@@ -14,44 +15,104 @@ impl Application {
 	fn create_header(
 		&self,
 	) -> iced::widget::Row<'static, <Self as iced::Application>::Message> {
+		let mut start_button =
+			iced::widget::button(iced::widget::text("Start").size(11));
+		let mut settings_button =
+			iced::widget::button(iced::widget::text("Settings").size(11));
+
+		match self.page {
+			Page::Start => {
+				settings_button = settings_button.on_press(
+					<Self as iced::Application>::Message::SettingsPage,
+				);
+			}
+			Page::Settings => {
+				start_button = start_button
+					.on_press(<Self as iced::Application>::Message::StartPage);
+			}
+		}
+
 		iced::widget::row![
-			Self::create_header_title(),
-			self.create_header_theme_button(),
-			Self::create_header_exit_button(),
+			iced::widget::text("Sapphire 🔐")
+				.size(17)
+				// To enable emoji support.
+				.shaping(iced::widget::text::Shaping::Advanced),
+			start_button,
+			settings_button,
+			iced::widget::button(iced::widget::text("Exit").size(11))
+				.on_press(<Self as iced::Application>::Message::Exit),
 		]
-		.padding(10)
 		.spacing(8)
 	}
 
 	#[must_use]
-	fn create_header_exit_button(
-	) -> iced::widget::Button<'static, <Self as iced::Application>::Message> {
-		iced::widget::button(iced::widget::text("Exit").size(10))
-			.on_press(<Self as iced::Application>::Message::Exit)
-	}
-
-	#[must_use]
-	fn create_header_theme_button(
+	fn create_settings_page(
 		&self,
-	) -> iced::widget::Button<'static, <Self as iced::Application>::Message> {
-		match self.theme {
-			Theme::Light => {
-				iced::widget::button(iced::widget::text("Nord theme").size(10))
-					.on_press(<Self as iced::Application>::Message::NordTheme)
-			}
-			Theme::Nord => iced::widget::button(
-				iced::widget::text("Light theme").size(10),
-			)
-			.on_press(<Self as iced::Application>::Message::LightTheme),
-		}
+	) -> iced::Element<<Self as iced::Application>::Message> {
+		let content = iced::widget::column![
+			self.create_header(),
+			self.create_settings_page_theme_pick_list()
+		]
+		.padding(10)
+		.spacing(8);
+
+		Into::into(content)
 	}
 
 	#[must_use]
-	fn create_header_title() -> iced::widget::Text<'static> {
-		iced::widget::text("Sapphire 💎")
-			.size(15)
-			// To enable emoji support.
-			.shaping(iced::widget::text::Shaping::Advanced)
+	fn create_settings_page_theme_pick_list(
+		&self,
+	) -> iced::widget::PickList<
+		iced::Theme,
+		&[iced::Theme],
+		iced::Theme,
+		<Self as iced::Application>::Message,
+	> {
+		iced::widget::pick_list(
+			iced::Theme::ALL,
+			Some(self.theme.clone()),
+			|theme| match theme {
+				iced::Theme::CatppuccinFrappe => {
+					Message::CatppuccinFrappeTheme
+				}
+				iced::Theme::CatppuccinLatte => Message::CatppuccinLatteTheme,
+				iced::Theme::CatppuccinMacchiato => {
+					Message::CatppuccinMacchiatoTheme
+				}
+				iced::Theme::CatppuccinMocha => Message::CatppuccinMochaTheme,
+				iced::Theme::Dark => Message::DarkTheme,
+				iced::Theme::Dracula => Message::DraculaTheme,
+				iced::Theme::GruvboxDark => Message::GruvboxDarkTheme,
+				iced::Theme::GruvboxLight => Message::GruvboxLightTheme,
+				iced::Theme::KanagawaDragon => Message::KanagawaDragonTheme,
+				iced::Theme::KanagawaLotus => Message::KanagawaLotusTheme,
+				iced::Theme::KanagawaWave => Message::KanagawaWaveTheme,
+				iced::Theme::Light => Message::LightTheme,
+				iced::Theme::Moonfly => Message::MoonflyTheme,
+				iced::Theme::Nightfly => Message::NightflyTheme,
+				iced::Theme::Nord => Message::NordTheme,
+				iced::Theme::SolarizedDark => Message::SolarizedDarkTheme,
+				iced::Theme::SolarizedLight => Message::SolarizedLightTheme,
+				iced::Theme::TokyoNightLight => Message::TokyoNightLightTheme,
+				iced::Theme::TokyoNightStorm => Message::TokyoNightStormTheme,
+				iced::Theme::TokyoNight => Message::TokyoNightTheme,
+				iced::Theme::Oxocarbon => Message::OxocarbonTheme,
+				iced::Theme::Custom(..) => unreachable!(),
+			},
+		)
+		.placeholder("Pick a theme...")
+		.text_size(13)
+	}
+
+	#[must_use]
+	fn create_start_page(
+		&self,
+	) -> iced::Element<<Self as iced::Application>::Message> {
+		let content = iced::widget::column![
+			self.create_header(),
+			iced::widget::text("A modern decentralized and private messenger with end-to-end encryption.").size(11),
+		].padding(10).spacing(8);
+		Into::into(content)
 	}
 }
 
@@ -63,16 +124,16 @@ impl iced::Application for Application {
 
 	#[inline]
 	fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-		(Self { theme: Theme::Nord }, iced::Command::none())
+		(
+			Self { page: Page::Start, theme: iced::Theme::Dark },
+			iced::Command::none(),
+		)
 	}
 
 	#[inline]
 	#[must_use]
 	fn theme(&self) -> Self::Theme {
-		match self.theme {
-			Theme::Light => Self::Theme::Light,
-			Theme::Nord => Self::Theme::Nord,
-		}
+		Clone::clone(&self.theme)
 	}
 
 	#[inline]
@@ -86,37 +147,122 @@ impl iced::Application for Application {
 		message: Self::Message,
 	) -> iced::Command<Self::Message> {
 		match message {
-			Message::Exit => iced::window::close(iced::window::Id::MAIN),
+			Message::CatppuccinFrappeTheme => {
+				self.theme = iced::Theme::CatppuccinFrappe;
+			}
+			Message::CatppuccinLatteTheme => {
+				self.theme = iced::Theme::CatppuccinLatte;
+			}
+			Message::CatppuccinMacchiatoTheme => {
+				self.theme = iced::Theme::CatppuccinMacchiato;
+			}
+			Message::CatppuccinMochaTheme => {
+				self.theme = iced::Theme::CatppuccinMocha;
+			}
+			Message::DarkTheme => {
+				self.theme = iced::Theme::Dark;
+			}
+			Message::DraculaTheme => {
+				self.theme = iced::Theme::Dracula;
+			}
+			Message::GruvboxDarkTheme => {
+				self.theme = iced::Theme::GruvboxDark;
+			}
+			Message::GruvboxLightTheme => {
+				self.theme = iced::Theme::GruvboxLight;
+			}
+			Message::KanagawaDragonTheme => {
+				self.theme = iced::Theme::KanagawaDragon;
+			}
+			Message::KanagawaLotusTheme => {
+				self.theme = iced::Theme::KanagawaLotus;
+			}
+			Message::KanagawaWaveTheme => {
+				self.theme = iced::Theme::KanagawaWave;
+			}
 			Message::LightTheme => {
-				self.theme = Theme::Light;
-				iced::Command::none()
+				self.theme = iced::Theme::Light;
+			}
+			Message::MoonflyTheme => {
+				self.theme = iced::Theme::Moonfly;
+			}
+			Message::NightflyTheme => {
+				self.theme = iced::Theme::Nightfly;
 			}
 			Message::NordTheme => {
-				self.theme = Theme::Nord;
-				iced::Command::none()
+				self.theme = iced::Theme::Nord;
+			}
+			Message::SolarizedDarkTheme => {
+				self.theme = iced::Theme::SolarizedDark;
+			}
+			Message::SolarizedLightTheme => {
+				self.theme = iced::Theme::SolarizedLight;
+			}
+			Message::TokyoNightLightTheme => {
+				self.theme = iced::Theme::TokyoNightLight;
+			}
+			Message::TokyoNightStormTheme => {
+				self.theme = iced::Theme::TokyoNightStorm;
+			}
+			Message::TokyoNightTheme => {
+				self.theme = iced::Theme::TokyoNight;
+			}
+			Message::OxocarbonTheme => {
+				self.theme = iced::Theme::Oxocarbon;
+			}
+			Message::SettingsPage => self.page = Page::Settings,
+			Message::StartPage => self.page = Page::Start,
+			Message::Exit => {
+				return iced::window::close(iced::window::Id::MAIN)
 			}
 		}
+
+		iced::Command::none()
 	}
 
 	#[must_use]
 	fn view(&self) -> iced::Element<Self::Message> {
-		Into::into(self.create_header())
+		match self.page {
+			Page::Settings => self.create_settings_page(),
+			Page::Start => self.create_start_page(),
+		}
 	}
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 enum Message {
-	Exit,
+	CatppuccinFrappeTheme,
+	CatppuccinLatteTheme,
+	CatppuccinMacchiatoTheme,
+	CatppuccinMochaTheme,
+	DarkTheme,
+	DraculaTheme,
+	GruvboxDarkTheme,
+	GruvboxLightTheme,
+	KanagawaDragonTheme,
+	KanagawaLotusTheme,
+	KanagawaWaveTheme,
 	LightTheme,
+	MoonflyTheme,
+	NightflyTheme,
 	NordTheme,
+	SolarizedDarkTheme,
+	SolarizedLightTheme,
+	TokyoNightLightTheme,
+	TokyoNightStormTheme,
+	TokyoNightTheme,
+	OxocarbonTheme,
+	SettingsPage,
+	StartPage,
+	Exit,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
-enum Theme {
-	Light,
-	Nord,
+enum Page {
+	Settings,
+	Start,
 }
 
 fn main() -> Result<(), Box<iced::Error>> {
