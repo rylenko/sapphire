@@ -7,8 +7,7 @@ TODO: documentation and commnents.
 #[derive(Clone, Debug, PartialEq)]
 struct Application {
 	page: Page,
-	theme: iced::Theme,
-	iface_scale: f32,
+	settings: Settings,
 }
 
 impl Application {
@@ -17,10 +16,10 @@ impl Application {
 		&self,
 	) -> iced::widget::Column<'static, <Self as iced::Application>::Message> {
 		let mut start_button = iced::widget::button(
-			iced::widget::text("Start").size(self.scale(11.0)),
+			iced::widget::text("Start").size(self.settings.scale(11.0)),
 		);
 		let mut settings_button = iced::widget::button(
-			iced::widget::text("Settings").size(self.scale(11.0)),
+			iced::widget::text("Settings").size(self.settings.scale(11.0)),
 		);
 
 		match self.page {
@@ -37,22 +36,22 @@ impl Application {
 
 		let row = iced::widget::row![
 			iced::widget::text("Sapphire 🔐")
-				.size(self.scale(17.0))
+				.size(self.settings.scale(17.0))
 				// To enable emoji support.
 				.shaping(iced::widget::text::Shaping::Advanced),
 			start_button,
 			settings_button,
 			iced::widget::button(
-				iced::widget::text("Exit").size(self.scale(11.0))
+				iced::widget::text("Exit").size(self.settings.scale(11.0))
 			)
 			.on_press(<Self as iced::Application>::Message::Exit),
 		]
-		.spacing(self.scale(8.0));
+		.spacing(self.settings.scale(8.0));
 		iced::widget::column![
 			row,
-			iced::widget::horizontal_rule(self.scale(10.0)),
+			iced::widget::horizontal_rule(self.settings.scale(10.0)),
 		]
-		.spacing(self.scale(8.0))
+		.spacing(self.settings.scale(8.0))
 	}
 
 	#[must_use]
@@ -63,9 +62,10 @@ impl Application {
 			self.create_header(),
 			self.create_settings_page_theme_list(),
 			self.create_settings_page_iface_slider(),
+			self.create_settings_page_restore_defaults_button(),
 		]
-		.padding(self.scale(10.0))
-		.spacing(self.scale(8.0));
+		.padding(self.settings.scale(10.0))
+		.spacing(self.settings.scale(8.0));
 
 		Into::into(content)
 	}
@@ -75,13 +75,27 @@ impl Application {
 		&self,
 	) -> iced::widget::Row<'static, <Self as iced::Application>::Message> {
 		iced::widget::row![
-			iced::widget::text("Interace scale:").size(self.scale(11.0)),
-			iced::widget::slider(0.1..=3.0, self.iface_scale, |scale| {
-				Message::IfaceScale(scale)
-			})
+			iced::widget::text("Interace scale:")
+				.size(self.settings.scale(11.0)),
+			iced::widget::slider(
+				0.1..=3.0,
+				self.settings.iface_scale,
+				|scale| { Message::IfaceScale(scale) }
+			)
 			.step(0.1),
 		]
-		.spacing(self.scale(8.0))
+		.spacing(self.settings.scale(8.0))
+	}
+
+	#[must_use]
+	fn create_settings_page_restore_defaults_button(
+		&self,
+	) -> iced::widget::Button<'static, <Self as iced::Application>::Message> {
+		iced::widget::button(
+			iced::widget::text("Restore defaults")
+				.size(self.settings.scale(11.0)),
+		)
+		.on_press(<Self as iced::Application>::Message::DefaultSettings)
 	}
 
 	#[must_use]
@@ -95,7 +109,7 @@ impl Application {
 	> {
 		iced::widget::pick_list(
 			iced::Theme::ALL,
-			Some(self.theme.clone()),
+			Some(Clone::clone(&self.settings.theme)),
 			|theme| match theme {
 				iced::Theme::CatppuccinFrappe => {
 					Message::CatppuccinFrappeTheme
@@ -126,7 +140,7 @@ impl Application {
 			},
 		)
 		.placeholder("Pick a theme...")
-		.text_size(self.scale(11.0))
+		.text_size(self.settings.scale(11.0))
 	}
 
 	#[must_use]
@@ -135,17 +149,9 @@ impl Application {
 	) -> iced::Element<<Self as iced::Application>::Message> {
 		let content = iced::widget::column![
 			self.create_header(),
-			iced::widget::text("A modern decentralized and private messenger with end-to-end encryption.").size(self.scale(11.0)),
-		].padding(self.scale(10.0)).spacing(self.scale(8.0));
+			iced::widget::text("A modern decentralized and private messenger with end-to-end encryption.").size(self.settings.scale(11.0)),
+		].padding(self.settings.scale(10.0)).spacing(self.settings.scale(8.0));
 		Into::into(content)
-	}
-
-	/// Scales passed size to interface size using the coefficient set on the
-	/// settings page.
-	#[must_use]
-	#[inline]
-	fn scale(&self, size: f32) -> f32 {
-		size * self.iface_scale
 	}
 }
 
@@ -158,11 +164,7 @@ impl iced::Application for Application {
 	#[inline]
 	fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
 		(
-			Self {
-				page: Page::Start,
-				theme: iced::Theme::Dark,
-				iface_scale: 1.0,
-			},
+			Self { page: Page::Start, settings: Settings::default() },
 			iced::Command::none(),
 		)
 	}
@@ -170,7 +172,7 @@ impl iced::Application for Application {
 	#[inline]
 	#[must_use]
 	fn theme(&self) -> Self::Theme {
-		Clone::clone(&self.theme)
+		Clone::clone(&self.settings.theme)
 	}
 
 	#[inline]
@@ -185,68 +187,71 @@ impl iced::Application for Application {
 	) -> iced::Command<Self::Message> {
 		match message {
 			Message::CatppuccinFrappeTheme => {
-				self.theme = iced::Theme::CatppuccinFrappe;
+				self.settings.theme = iced::Theme::CatppuccinFrappe;
 			}
 			Message::CatppuccinLatteTheme => {
-				self.theme = iced::Theme::CatppuccinLatte;
+				self.settings.theme = iced::Theme::CatppuccinLatte;
 			}
 			Message::CatppuccinMacchiatoTheme => {
-				self.theme = iced::Theme::CatppuccinMacchiato;
+				self.settings.theme = iced::Theme::CatppuccinMacchiato;
 			}
 			Message::CatppuccinMochaTheme => {
-				self.theme = iced::Theme::CatppuccinMocha;
+				self.settings.theme = iced::Theme::CatppuccinMocha;
 			}
 			Message::DarkTheme => {
-				self.theme = iced::Theme::Dark;
+				self.settings.theme = iced::Theme::Dark;
+			}
+			Message::DefaultSettings => {
+				self.settings.restore_defaults();
 			}
 			Message::DraculaTheme => {
-				self.theme = iced::Theme::Dracula;
+				self.settings.theme = iced::Theme::Dracula;
 			}
 			Message::GruvboxDarkTheme => {
-				self.theme = iced::Theme::GruvboxDark;
+				self.settings.theme = iced::Theme::GruvboxDark;
 			}
 			Message::GruvboxLightTheme => {
-				self.theme = iced::Theme::GruvboxLight;
+				self.settings.theme = iced::Theme::GruvboxLight;
 			}
-			Message::IfaceScale(scale) => self.iface_scale = scale,
+			Message::IfaceScale(scale) => self.settings.iface_scale = scale,
 			Message::KanagawaDragonTheme => {
-				self.theme = iced::Theme::KanagawaDragon;
+				self.settings.theme = iced::Theme::KanagawaDragon;
 			}
 			Message::KanagawaLotusTheme => {
-				self.theme = iced::Theme::KanagawaLotus;
+				self.settings.theme = iced::Theme::KanagawaLotus;
 			}
 			Message::KanagawaWaveTheme => {
-				self.theme = iced::Theme::KanagawaWave;
+				self.settings.theme = iced::Theme::KanagawaWave;
 			}
 			Message::LightTheme => {
-				self.theme = iced::Theme::Light;
+				self.settings.theme = iced::Theme::Light;
 			}
 			Message::MoonflyTheme => {
-				self.theme = iced::Theme::Moonfly;
+				self.settings.theme = iced::Theme::Moonfly;
 			}
 			Message::NightflyTheme => {
-				self.theme = iced::Theme::Nightfly;
+				self.settings.theme = iced::Theme::Nightfly;
 			}
 			Message::NordTheme => {
-				self.theme = iced::Theme::Nord;
+				self.settings.theme = iced::Theme::Nord;
 			}
 			Message::SolarizedDarkTheme => {
-				self.theme = iced::Theme::SolarizedDark;
+				self.settings.theme = iced::Theme::SolarizedDark;
 			}
 			Message::SolarizedLightTheme => {
-				self.theme = iced::Theme::SolarizedLight;
+				self.settings.theme = iced::Theme::SolarizedLight;
 			}
 			Message::TokyoNightLightTheme => {
-				self.theme = iced::Theme::TokyoNightLight;
+				self.settings.theme = iced::Theme::TokyoNightLight;
 			}
 			Message::TokyoNightStormTheme => {
-				self.theme = iced::Theme::TokyoNightStorm;
+				self.settings.theme = iced::Theme::TokyoNightStorm;
 			}
 			Message::TokyoNightTheme => {
-				self.theme = iced::Theme::TokyoNight;
+				self.settings.theme = iced::Theme::TokyoNight;
 			}
 			Message::OxocarbonTheme => {
-				self.theme = iced::Theme::Oxocarbon;
+				self.settings.theme = iced::Theme::Oxocarbon;
 			}
 			Message::SettingsPage => self.page = Page::Settings,
 			Message::StartPage => self.page = Page::Start,
@@ -267,7 +272,7 @@ impl iced::Application for Application {
 	}
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[non_exhaustive]
 enum Message {
 	CatppuccinFrappeTheme,
@@ -275,6 +280,7 @@ enum Message {
 	CatppuccinMacchiatoTheme,
 	CatppuccinMochaTheme,
 	DarkTheme,
+	DefaultSettings,
 	DraculaTheme,
 	GruvboxDarkTheme,
 	GruvboxLightTheme,
@@ -302,6 +308,37 @@ enum Message {
 enum Page {
 	Settings,
 	Start,
+}
+
+/// TODO: Serialize them to the file and load this file at startup.
+#[derive(Clone, Debug, PartialEq)]
+struct Settings {
+	theme: iced::Theme,
+	iface_scale: f32,
+}
+
+impl Settings {
+	/// Restores default settings.
+	#[inline]
+	fn restore_defaults(&mut self) {
+		*self = Self::default();
+	}
+
+	/// Scales passed size to interface size using the coefficient set on the
+	/// settings page.
+	#[must_use]
+	#[inline]
+	fn scale(&self, size: f32) -> f32 {
+		size * self.iface_scale
+	}
+}
+
+impl Default for Settings {
+	#[inline]
+	#[must_use]
+	fn default() -> Self {
+		Self { theme: iced::Theme::Dark, iface_scale: 1.0 }
+	}
 }
 
 fn main() -> Result<(), Box<iced::Error>> {
