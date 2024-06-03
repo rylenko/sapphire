@@ -56,4 +56,29 @@ impl Shield {
 			),
 		}
 	}
+
+	/// Creates new Bob's state.
+	#[must_use]
+	pub fn new_bob(
+		private_key: x25519_dalek::StaticSecret,
+		root_key: key::Root,
+		sending_chain_next_header_key: key::Header,
+		receiving_chain_next_header_key: key::Header,
+		skipped_message_keys_max_len: usize,
+	) -> Self {
+		Self {
+			local_private_key: private_key,
+			remote_public_key: None,
+			root_chain: chain::Root::new(root_key),
+			receiving_chain: chain::Receiving::new(
+				receiving_chain_next_header_key,
+				skipped_message_keys_max_len,
+			),
+			sending_chain: chain::Sending::new(
+				None,
+				None,
+				sending_chain_next_header_key,
+			),
+		}
+	}
 }
