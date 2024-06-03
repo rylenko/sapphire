@@ -62,7 +62,11 @@ impl Application {
 			self.create_header(),
 			self.create_settings_page_theme_list(),
 			self.create_settings_page_iface_slider(),
-			self.create_settings_page_restore_defaults_button(),
+			iced::widget::row![
+				self.create_settings_page_save_button(),
+				self.create_settings_page_restore_defaults_button(),
+			]
+			.spacing(self.settings.scale(8.0)),
 		]
 		.padding(self.settings.scale(10.0))
 		.spacing(self.settings.scale(8.0));
@@ -75,8 +79,8 @@ impl Application {
 		&self,
 	) -> iced::widget::Row<'static, <Self as iced::Application>::Message> {
 		iced::widget::row![
-			iced::widget::text("Interace scale:")
-				.size(self.settings.scale(11.0)),
+			iced::widget::text("Interface scale:")
+				.size(self.settings.scale(15.0)),
 			iced::widget::slider(
 				0.1..=3.0,
 				self.settings.iface_scale,
@@ -99,15 +103,19 @@ impl Application {
 	}
 
 	#[must_use]
+	fn create_settings_page_save_button(
+		&self,
+	) -> iced::widget::Button<'static, <Self as iced::Application>::Message> {
+		iced::widget::button(
+			iced::widget::text("Save").size(self.settings.scale(11.0)),
+		)
+	}
+
+	#[must_use]
 	fn create_settings_page_theme_list(
 		&self,
-	) -> iced::widget::PickList<
-		iced::Theme,
-		&[iced::Theme],
-		iced::Theme,
-		<Self as iced::Application>::Message,
-	> {
-		iced::widget::pick_list(
+	) -> iced::widget::Row<'static, <Self as iced::Application>::Message> {
+		let list = iced::widget::pick_list(
 			iced::Theme::ALL,
 			Some(Clone::clone(&self.settings.theme)),
 			|theme| match theme {
@@ -140,7 +148,12 @@ impl Application {
 			},
 		)
 		.placeholder("Pick a theme...")
-		.text_size(self.settings.scale(11.0))
+		.text_size(self.settings.scale(11.0));
+		iced::widget::row![
+			iced::widget::text("Theme:").size(self.settings.scale(15.0)),
+			list,
+		]
+		.spacing(self.settings.scale(8.0))
 	}
 
 	#[must_use]
@@ -149,9 +162,19 @@ impl Application {
 	) -> iced::Element<<Self as iced::Application>::Message> {
 		let content = iced::widget::column![
 			self.create_header(),
-			iced::widget::text("A modern decentralized and private messenger with end-to-end encryption.").size(self.settings.scale(11.0)),
-		].padding(self.settings.scale(10.0)).spacing(self.settings.scale(8.0));
+			self.create_start_page_welcome(),
+		]
+		.padding(self.settings.scale(10.0))
+		.spacing(self.settings.scale(8.0));
 		Into::into(content)
+	}
+
+	#[must_use]
+	fn create_start_page_welcome(&self) -> iced::widget::Text<'static> {
+		iced::widget::text(
+			"A modern decentralized and private messenger with end-to-end encryption."
+		)
+		.size(self.settings.scale(11.0))
 	}
 }
 
