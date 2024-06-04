@@ -77,6 +77,36 @@ impl Sending {
 		Ok(message_key)
 	}
 
+	/// Returns current [header key].
+	///
+	/// [header key]: crate::key::Header
+	#[cfg(test)]
+	#[inline]
+	#[must_use]
+	pub(crate) fn header_key(&self) -> Option<&crate::key::Header> {
+		self.header_key.as_ref()
+	}
+
+	/// Returns current [master key].
+	///
+	/// [master key]: crate::key::Master
+	#[cfg(test)]
+	#[inline]
+	#[must_use]
+	pub(crate) fn master_key(&self) -> Option<&crate::key::Master> {
+		self.master_key.as_ref()
+	}
+
+	/// Returns next [header key].
+	///
+	/// [header key]: crate::key::Header
+	#[cfg(test)]
+	#[inline]
+	#[must_use]
+	pub(crate) fn next_header_key(&self) -> &crate::key::Header {
+		&self.next_header_key
+	}
+
 	/// Upgrades the chain with a new master [`key`] and a new next [header
 	/// key]. In other words, it is as if a new chain is created with
 	/// information about the previous chain.
