@@ -1,12 +1,16 @@
 .POSIX:
 
+include config.mk
+
 ROOT_DIR = $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
-DESKTOP_CRATE = desktop-iced
 
 all: clippy fmt
 
 bench:
 	@cargo bench --workspace --verbose
+
+build:
+	@cargo build -p $(BIN_CRATE) --release
 
 check-fmt:
 	@cargo fmt --all --check
@@ -27,10 +31,17 @@ collect-todos:
 fmt:
 	@cargo fmt --all
 
-run:
-	@cargo run -p $(DESKTOP_CRATE)
+install:
+	@mkdir -p $(INSTALL_PREFIX)/bin
+	@cp ./target/release/$(BIN_CRATE) $(INSTALL_PREFIX)/bin/$(INSTALL_BIN_NAME)
+
+run-debug:
+	@cargo run -p $(BIN_CRATE)
 
 test:
 	@cargo test --workspace
+
+uninstall:
+	@rm -rf $(INSTALL_PREFIX)/bin/$(INSTALL_BIN_NAME)
 
 .PHONY: all bench check-fmt collect-todos clippy fmt test

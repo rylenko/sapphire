@@ -7,6 +7,11 @@
 # TODO: tracing or logs in all crates.
 # TODO: installation in the Makefile. Do not forget to make production builds.
 
+[profile.release]
+strip = "symbols"
+lto = "fat"
+panic = "abort"
+
 [workspace]
 members = [
 	"crates/*",
