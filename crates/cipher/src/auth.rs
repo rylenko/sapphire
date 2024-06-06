@@ -31,8 +31,10 @@ impl From<MacBytes> for Tag {
 	/// Cuts the tag from message authentication code.
 	#[must_use]
 	fn from(mac: MacBytes) -> Self {
-		let mut bytes = [0; core::mem::size_of::<Self>()];
-		bytes.copy_from_slice(&mac[..core::mem::size_of::<Self>()]);
+		const SIZE: usize = core::mem::size_of::<Self>();
+
+		let mut bytes = [0; SIZE];
+		bytes.copy_from_slice(&mac[..SIZE]);
 		Self(bytes)
 	}
 }
