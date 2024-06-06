@@ -1,5 +1,3 @@
-pub(crate) type MacBytes = [u8; 32];
-
 type MacImpl = hmac::Hmac<sha2::Sha256>;
 
 /// Authentication tag, which is equal to the cutted message authentication
@@ -19,22 +17,19 @@ type MacImpl = hmac::Hmac<sha2::Sha256>;
 pub struct Tag([u8; 12]);
 
 impl Tag {
+	// Length of tag bytes.
+	const LEN: usize = 12;
+
 	// Required by the Double Ratchet specification.
-	utils::const_assert!(
-		_SIZE_ASSERT,
-		8 <= core::mem::size_of::<Self>()
-			&& core::mem::size_of::<Self>() <= 32
-	);
+	utils::const_assert!(_LEN_ASSERT, 8 <= Self::LEN && Self::LEN <= 32);
 }
 
-impl From<MacBytes> for Tag {
+impl From<[u8; 32]> for Tag {
 	/// Cuts the tag from message authentication code.
 	#[must_use]
-	fn from(mac: MacBytes) -> Self {
-		const SIZE: usize = core::mem::size_of::<Self>();
-
-		let mut bytes = [0; SIZE];
-		bytes.copy_from_slice(&mac[..SIZE]);
+	fn from(mac: [u8; 32]) -> Self {
+		let mut bytes = [0; Self::LEN];
+		bytes.copy_from_slice(&mac[..Self::LEN]);
 		Self(bytes)
 	}
 }
@@ -61,7 +56,7 @@ impl Mac {
 	/// After using this method, the authenticator returns to its initial
 	/// state.
 	#[must_use]
-	pub(crate) fn auth(&mut self, buf: &[u8], assoc: &[&[u8]]) -> MacBytes {
+	pub(crate) fn auth(&mut self, buf: &[u8], assoc: &[&[u8]]) -> [u8; 32] {
 		// Update with accepted buffer.
 		hmac::Mac::update(&mut self.inner, buf);
 		// Update with accepted associated data.
@@ -79,7 +74,7 @@ mod tests {
 	const ASSOC: &[&[u8]] = &[b"assoc1", b"assoc2"];
 	const BUF: &[u8] = b"buf";
 	const KEY: &[u8] = b"key";
-	const MAC: super::MacBytes = [
+	const MAC: [u8; 32] = [
 		190, 67, 118, 3, 32, 204, 105, 154, 67, 54, 231, 226, 3, 245, 208, 32,
 		62, 15, 71, 76, 142, 242, 203, 183, 115, 100, 178, 229, 224, 119, 252,
 		107,
