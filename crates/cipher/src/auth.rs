@@ -14,10 +14,10 @@ type MacImpl = hmac::Hmac<sha2::Sha256>;
 	zerocopy::FromZeroes,
 )]
 #[repr(transparent)]
-pub struct Tag([u8; 12]);
+pub struct Tag([u8; Self::LEN]);
 
 impl Tag {
-	// Length of tag bytes.
+	/// Length of tag bytes.
 	const LEN: usize = 12;
 
 	// Required by the Double Ratchet specification.
