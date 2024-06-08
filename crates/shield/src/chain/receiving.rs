@@ -2,7 +2,7 @@
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum ForwardError {
-	/// No [`Master] key to move chain forward.
+	/// No [`Master`] key to move chain forward.
 	///
 	/// [`Master`]: crate::key::Master
 	NoMasterKey,
@@ -23,7 +23,7 @@ impl core::fmt::Display for ForwardError {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
 			Self::NoMasterKey => {
-				write!(f, "There is no master to move chain forward.")
+				write!(f, "There is no master key to move chain forward.")
 			}
 		}
 	}
@@ -37,6 +37,7 @@ pub(crate) struct Receiving {
 	next_header_key: crate::key::Header,
 	next_message_num: u32,
 	skipped_message_keys: super::skipped_message_keys::SkippedMessageKeys,
+	skip_message_keys_limit: u32,
 }
 
 impl Receiving {
@@ -45,7 +46,7 @@ impl Receiving {
 	#[must_use]
 	pub(crate) fn new(
 		next_header_key: crate::key::Header,
-		skipped_message_keys_max_len: usize,
+		skip_message_keys_limit: u32,
 	) -> Self {
 		Self {
 			master_key: None,
@@ -53,9 +54,8 @@ impl Receiving {
 			next_header_key,
 			next_message_num: 0,
 			skipped_message_keys:
-				super::skipped_message_keys::SkippedMessageKeys::new(
-					skipped_message_keys_max_len,
-				),
+				super::skipped_message_keys::SkippedMessageKeys::new(),
+			skip_message_keys_limit,
 		}
 	}
 
@@ -109,6 +109,40 @@ impl Receiving {
 		&self.next_header_key
 	}
 
+	pub(crate) fn skip_message_keys(
+		&mut self,
+		until_num: u32,
+	) -> Result<(), SkipMessageKeysError> {
+		// Validate skip limit to mitigate a huge storage consumption.
+		if self.next_message_num + self.skip_message_keys_limit < until_num {
+			return Err(SkipMessageKeysError::Limit);
+		}
+
+		// Try to get a header key or return an error if there is no header
+		// key.
+		//
+		// Cloning is needed because of future mutability.
+		let header_key = Clone::clone(
+			self.header_key
+				.as_ref()
+				.ok_or(SkipMessageKeysError::NoHeaderKey)?,
+		);
+
+		while self.next_message_num < until_num {
+			// Move chain forward to get skipped message key.
+			let message_num = self.next_message_num;
+			let message_key = self.forward()?;
+
+			// Insert a new skipped message key to the storage.
+			self.skipped_message_keys.insert(
+				Clone::clone(&header_key),
+				message_num,
+				message_key,
+			);
+		}
+		Ok(())
+	}
+
 	/// Upgrades the chain with a new master [`key`] and a new next [header
 	/// key]. In other words, it is as if a new chain is created with
 	/// information about the previous chain.
@@ -132,10 +166,58 @@ impl Receiving {
 	}
 }
 
+/// Message keys skipping error.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum SkipMessageKeysError {
+	/// Forward moving error.
+	Forward(ForwardError),
+	/// Too many keys to skip.
+	Limit,
+	/// No [`Header`] key to insert to the [storage].
+	///
+	/// [`Header`]: crate::key::Header
+	/// [storage]: super::skipped_message_keys::SkippedMessageKeys
+	NoHeaderKey,
+}
+
+impl From<ForwardError> for SkipMessageKeysError {
+	#[inline]
+	#[must_use]
+	fn from(e: ForwardError) -> Self {
+		Self::Forward(e)
+	}
+}
+
+impl core::error::Error for SkipMessageKeysError {
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			Self::Forward(e) => Some(e),
+			Self::Limit | Self::NoHeaderKey => None,
+		}
+	}
+}
+
+impl core::fmt::Display for SkipMessageKeysError {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::Forward(..) => {
+				write!(f, "Failed to move chain forward to get a message key.")
+			}
+			Self::Limit => write!(f, "Too many keys to skip."),
+			Self::NoHeaderKey => {
+				write!(f, "There is no header key to insert to the storage.")
+			}
+		}
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	#[test]
 	fn test_forward() {
+		// Create the chain.
 		let mut chain =
 			super::Receiving::new(crate::key::Header::new([1; 32]), 0);
 		chain.upgrade(
@@ -148,13 +230,38 @@ mod tests {
 		assert_ne!(chain.master_key, Some(crate::key::Master::new([0; 32])));
 		assert_eq!(chain.next_message_num, 1);
 
-		// Test moving forward without master key..
+		// Test moving forward without master key.
 		chain.master_key = None;
 		assert_eq!(chain.forward(), Err(super::ForwardError::NoMasterKey));
 	}
 
 	#[test]
+	fn test_skip_message_keys() -> Result<(), super::SkipMessageKeysError> {
+		const LIMIT: u32 = 2;
+
+		// Create the chain.
+		let mut chain =
+			super::Receiving::new(crate::key::Header::new([1; 32]), LIMIT);
+		chain.upgrade(
+			crate::key::Master::new([0; 32]),
+			crate::key::Header::new([2; 32]),
+		);
+
+		// Test limit validation.
+		assert!(chain.skip_message_keys(LIMIT + 1).is_err());
+
+		// Clone the chain to test forward moving.
+		let mut clone = Clone::clone(&chain);
+		clone.forward()?;
+		clone.forward()?;
+		chain.skip_message_keys(2)?;
+		assert_eq!(clone.forward()?, chain.forward()?);
+		Ok(())
+	}
+
+	#[test]
 	fn test_upgrade() -> Result<(), super::ForwardError> {
+		// Create the chain.
 		let mut chain =
 			super::Receiving::new(crate::key::Header::new([1; 32]), 0);
 		chain.upgrade(

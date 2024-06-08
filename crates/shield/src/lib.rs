@@ -29,7 +29,7 @@ impl Shield {
 		root_key: key::Root,
 		sending_chain_header_key: key::Header,
 		receiving_chain_next_header_key: key::Header,
-		skipped_message_keys_max_len: usize,
+		skip_message_keys_limit: u32,
 	) -> Self {
 		// Generate new local private key.
 		let local_private_key = x25519_dalek::StaticSecret::random();
@@ -47,7 +47,7 @@ impl Shield {
 			root_chain,
 			receiving_chain: chain::Receiving::new(
 				receiving_chain_next_header_key,
-				skipped_message_keys_max_len,
+				skip_message_keys_limit,
 			),
 			sending_chain: chain::Sending::new(
 				Some(sending_chain_key),
@@ -64,7 +64,7 @@ impl Shield {
 		root_key: key::Root,
 		sending_chain_next_header_key: key::Header,
 		receiving_chain_next_header_key: key::Header,
-		skipped_message_keys_max_len: usize,
+		skip_message_keys_limit: u32,
 	) -> Self {
 		Self {
 			local_private_key: private_key,
@@ -72,7 +72,7 @@ impl Shield {
 			root_chain: chain::Root::new(root_key),
 			receiving_chain: chain::Receiving::new(
 				receiving_chain_next_header_key,
-				skipped_message_keys_max_len,
+				skip_message_keys_limit,
 			),
 			sending_chain: chain::Sending::new(
 				None,
