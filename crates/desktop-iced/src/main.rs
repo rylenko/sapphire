@@ -1,13 +1,15 @@
 /*!
 Sapphire desktop application built on [`iced`].
 
-TODO: documentation and commnents.
+TODO: documentation and comments.
 */
+
+mod settings;
 
 #[derive(Clone, Debug, PartialEq)]
 struct Application {
 	page: Page,
-	settings: Settings,
+	settings: settings::Settings,
 }
 
 impl Application {
@@ -61,7 +63,7 @@ impl Application {
 		let content = iced::widget::column![
 			self.create_header(),
 			self.create_settings_page_theme_list(),
-			self.create_settings_page_iface_slider(),
+			self.create_settings_page_scale_slider(),
 			iced::widget::row![
 				self.create_settings_page_save_button(),
 				self.create_settings_page_restore_defaults_button(),
@@ -75,17 +77,15 @@ impl Application {
 	}
 
 	#[must_use]
-	fn create_settings_page_iface_slider(
+	fn create_settings_page_scale_slider(
 		&self,
 	) -> iced::widget::Row<'static, <Self as iced::Application>::Message> {
 		iced::widget::row![
 			iced::widget::text("Interface scale:")
 				.size(self.settings.scale(15.0)),
-			iced::widget::slider(
-				0.1..=3.0,
-				self.settings.iface_scale,
-				|scale| { Message::IfaceScale(scale) }
-			)
+			iced::widget::slider(0.1..=3.0, self.settings.scale, |scale| {
+				Message::IfaceScale(scale)
+			})
 			.step(0.1),
 		]
 		.spacing(self.settings.scale(8.0))
@@ -187,7 +187,7 @@ impl iced::Application for Application {
 	#[inline]
 	fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
 		(
-			Self { page: Page::Start, settings: Settings::default() },
+			Self { page: Page::Start, settings: Default::default() },
 			iced::Command::none(),
 		)
 	}
@@ -236,7 +236,7 @@ impl iced::Application for Application {
 			Message::GruvboxLightTheme => {
 				self.settings.theme = iced::Theme::GruvboxLight;
 			}
-			Message::IfaceScale(scale) => self.settings.iface_scale = scale,
+			Message::IfaceScale(scale) => self.settings.scale = scale,
 			Message::KanagawaDragonTheme => {
 				self.settings.theme = iced::Theme::KanagawaDragon;
 			}
@@ -333,39 +333,7 @@ enum Page {
 	Start,
 }
 
-/// TODO: Serialize them to the file and load this file at startup.
-#[derive(Clone, Debug, PartialEq)]
-struct Settings {
-	theme: iced::Theme,
-	iface_scale: f32,
-}
-
-impl Settings {
-	/// Restores default settings.
-	#[inline]
-	fn restore_defaults(&mut self) {
-		*self = Self::default();
-	}
-
-	/// Scales passed size to interface size using the coefficient set on the
-	/// settings page.
-	#[must_use]
-	#[inline]
-	fn scale(&self, size: f32) -> f32 {
-		size * self.iface_scale
-	}
-}
-
-impl Default for Settings {
-	#[inline]
-	#[must_use]
-	fn default() -> Self {
-		Self { theme: iced::Theme::Dark, iface_scale: 1.0 }
-	}
-}
-
 fn main() -> Result<(), Box<iced::Error>> {
 	<Application as iced::Application>::run(iced::Settings::default())
-		// Wrap into box because error type is too large.
 		.map_err(Box::new)
 }

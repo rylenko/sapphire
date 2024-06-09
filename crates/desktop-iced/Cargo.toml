@@ -2,6 +2,10 @@
 features = ["advanced"]
 version = "0.12.1"
 
+[dependencies.serde]
+features = ["derive"]
+version = "1.0.203"
+
 [lints]
 workspace = true
 
