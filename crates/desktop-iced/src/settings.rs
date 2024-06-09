@@ -108,7 +108,17 @@ mod theme_serde {
 #[cfg(test)]
 mod tests {
 	#[test]
-	fn test_serde() {
-		todo!("Write serialization and deserialization tests.");
+	fn test_serde() -> serde_json::Result<()> {
+		const STR: &str = "{\"scale\":1.5,\"theme\":\"Dark\"}";
+
+		// Deserialize settings struct from the string.
+		let settings: super::Settings = serde_json::from_str(STR)?;
+		assert!((settings.scale - 1.5).abs() < f32::EPSILON);
+		assert_eq!(settings.theme, iced::Theme::Dark);
+
+		// Serialize settings to the string.
+		let string = serde_json::to_string(&settings)?;
+		assert_eq!(string, STR);
+		Ok(())
 	}
 }
