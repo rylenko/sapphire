@@ -2,13 +2,15 @@
 Sapphire desktop application built on [`iced`].
 
 TODO: documentation and comments.
+TODO: add page::Page enum, page::Start, page::Settings and move logic to them.
 */
 
+mod page;
 mod settings;
 
 #[derive(Clone, Debug, PartialEq)]
 struct Application {
-	page: Page,
+	page: page::Page,
 	settings: settings::Settings,
 }
 
@@ -25,12 +27,12 @@ impl Application {
 		);
 
 		match self.page {
-			Page::Start => {
+			page::Page::Start => {
 				settings_button = settings_button.on_press(
 					<Self as iced::Application>::Message::SettingsPage,
 				);
 			}
-			Page::Settings => {
+			page::Page::Settings => {
 				start_button = start_button
 					.on_press(<Self as iced::Application>::Message::StartPage);
 			}
@@ -187,7 +189,10 @@ impl iced::Application for Application {
 	#[inline]
 	fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
 		(
-			Self { page: Page::Start, settings: Default::default() },
+			Self {
+				page: page::Page::default(),
+				settings: settings::Settings::default(),
+			},
 			iced::Command::none(),
 		)
 	}
@@ -276,8 +281,8 @@ impl iced::Application for Application {
 			Message::OxocarbonTheme => {
 				self.settings.theme = iced::Theme::Oxocarbon;
 			}
-			Message::SettingsPage => self.page = Page::Settings,
-			Message::StartPage => self.page = Page::Start,
+			Message::SettingsPage => self.page = page::Page::Settings,
+			Message::StartPage => self.page = page::Page::Start,
 			Message::Exit => {
 				return iced::window::close(iced::window::Id::MAIN)
 			}
@@ -289,8 +294,8 @@ impl iced::Application for Application {
 	#[must_use]
 	fn view(&self) -> iced::Element<Self::Message> {
 		match self.page {
-			Page::Settings => self.create_settings_page(),
-			Page::Start => self.create_start_page(),
+			page::Page::Settings => self.create_settings_page(),
+			page::Page::Start => self.create_start_page(),
 		}
 	}
 }
@@ -324,13 +329,6 @@ enum Message {
 	SettingsPage,
 	StartPage,
 	Exit,
-}
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[non_exhaustive]
-enum Page {
-	Settings,
-	Start,
 }
 
 fn main() -> Result<(), Box<iced::Error>> {

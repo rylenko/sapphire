@@ -64,20 +64,33 @@ impl Default for Settings {
 	}
 }
 
+/// Module to serialize and deserialize [themes].
+///
+/// [themes]: iced::Theme
 mod theme_serde {
+	/// Deserializes theme using a [`String`] from passed [deserializer].
+	///
+	/// [deserializer]: serde::Deserializer
 	pub(super) fn deserialize<'de, D>(
 		deserializer: D,
 	) -> Result<iced::Theme, D::Error>
 	where
 		D: serde::Deserializer<'de>,
 	{
+		// Deserialize a string using accepted deserializer.
 		let string: String = serde::Deserialize::deserialize(deserializer)?;
+
+		// Get theme using deserialized string.
 		let theme = match &string {
 			_ => super::Settings::default_theme(),
 		};
 		Ok(theme)
 	}
 
+	/// Serializes [theme] to the string using passed [serializer].
+	///
+	/// [theme]: iced::Theme
+	/// [serializer]: serde::Serializer
 	pub(super) fn serialize<S>(
 		theme: &iced::Theme,
 		serializer: S,
@@ -85,7 +98,9 @@ mod theme_serde {
 	where
 		S: serde::Serializer,
 	{
-		let string = format!("{}", theme);
+		// Format theme variant to string.
+		let string = format!("{theme}");
+		// Serialize theme string using accepted serializer.
 		serializer.serialize_str(&string)
 	}
 }
