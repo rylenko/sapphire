@@ -15,7 +15,7 @@
 pub(crate) struct Settings {
 	#[serde(default = "Settings::default_scale")]
 	pub(crate) scale: f32,
-	#[serde(with = "theme_serde")]
+	#[serde(default = "Settings::default_theme", with = "theme_serde")]
 	pub(crate) theme: iced::Theme,
 }
 
@@ -108,7 +108,21 @@ mod theme_serde {
 #[cfg(test)]
 mod tests {
 	#[test]
-	fn test_serde() -> serde_json::Result<()> {
+	fn test_serde_defaults() -> serde_json::Result<()> {
+		const STR: &str = "{}";
+
+		// Deserialize default settings struct from the string.
+		let settings: super::Settings = serde_json::from_str(STR)?;
+		assert!(
+			(settings.scale - super::Settings::default_scale()).abs()
+				< f32::EPSILON
+		);
+		assert_eq!(settings.theme, super::Settings::default_theme());
+		Ok(())
+	}
+
+	#[test]
+	fn test_serde_full() -> serde_json::Result<()> {
 		const STR: &str = "{\"scale\":1.5,\"theme\":\"Dark\"}";
 
 		// Deserialize settings struct from the string.
@@ -119,6 +133,16 @@ mod tests {
 		// Serialize settings to the string.
 		let string = serde_json::to_string(&settings)?;
 		assert_eq!(string, STR);
+		Ok(())
+	}
+
+	#[test]
+	fn test_serde_invalid_theme() -> serde_json::Result<()> {
+		const STR: &str = "{\"theme\":\"InvalidTheme\"}";
+
+		// Deserialize settings struct from the string with an invalid theme.
+		let settings: super::Settings = serde_json::from_str(STR)?;
+		assert_eq!(settings.theme, super::Settings::default_theme());
 		Ok(())
 	}
 }
