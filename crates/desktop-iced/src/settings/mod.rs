@@ -1,3 +1,21 @@
+pub(crate) mod json;
+
+/// Trait for settings loaders.
+pub(crate) trait Loader<'a> {
+	type Error;
+
+	/// Loads settings to the storage.
+	async fn load(&mut self) -> Result<Settings, Self::Error>;
+}
+
+/// Trait for settings savers.
+pub(crate) trait Saver<'a> {
+	type Error;
+
+	/// Saves settings to the storage.
+	async fn save(&mut self, settings: &Settings) -> Result<(), Self::Error>;
+}
+
 /// Settings of the desktop application.
 ///
 /// You can create [new] settings, get [default] settings, [restore default]
@@ -9,8 +27,6 @@
 /// [restore default]: Self::restore_defaults
 /// [serialize]: serde::Serialize
 /// [deserialize]: serde::Deserialize
-///
-/// TODO: Add SettingsStorage trait and SettingsFileStorage implementation?
 #[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub(crate) struct Settings {
 	#[serde(default = "Settings::default_scale")]
