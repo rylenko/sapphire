@@ -4,15 +4,7 @@ type MacImpl = hmac::Hmac<sha2::Sha256>;
 ///
 /// [receiving]: super::recv::Recv
 /// [sending]: super::send::Send
-#[derive(
-	Clone,
-	Debug,
-	Eq,
-	Hash,
-	PartialEq,
-	zeroize::ZeroizeOnDrop,
-	zerocopy::AsBytes,
-)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, zeroize::ZeroizeOnDrop)]
 #[repr(transparent)]
 pub(crate) struct Master([u8; 32]);
 
@@ -22,6 +14,13 @@ impl Master {
 	#[must_use]
 	pub(crate) const fn new(bytes: [u8; 32]) -> Self {
 		Self(bytes)
+	}
+
+	/// Returns key bytes.
+	#[inline]
+	#[must_use]
+	pub(crate) const fn as_bytes(&self) -> &[u8; 32] {
+		&self.0
 	}
 
 	/// Creates new master and [message] keys based on the current master key.
@@ -57,6 +56,14 @@ impl Master {
 	}
 }
 
+impl AsRef<[u8]> for Master {
+	#[inline]
+	#[must_use]
+	fn as_ref(&self) -> &[u8] {
+		self.as_bytes()
+	}
+}
+
 impl From<[u8; 32]> for Master {
 	#[inline]
 	#[must_use]
@@ -76,7 +83,7 @@ mod tests {
 			34, 37, 174, 119, 16, 130, 63, 153, 124, 194, 80, 243, 30, 93, 58,
 			235, 80
 		]);
-		assert_eq!(zerocopy::AsBytes::as_bytes(&message_key), &[
+		assert_eq!(message_key.as_bytes(), &[
 			13, 139, 27, 91, 217, 40, 164, 207, 171, 103, 8, 182, 175, 111,
 			225, 93, 93, 65, 179, 38, 142, 109, 216, 237, 156, 91, 14, 205,
 			225, 12, 164, 162

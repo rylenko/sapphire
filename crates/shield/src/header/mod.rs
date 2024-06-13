@@ -43,7 +43,10 @@ impl Header {
 	/// Encrypts current header using passed `key`.
 	#[inline]
 	#[must_use]
-	pub(crate) fn encrypt(&self, key: &[u8]) -> encrypted::Encrypted {
+	pub(crate) fn encrypt(
+		&self,
+		key: &crate::key::Header,
+	) -> encrypted::Encrypted {
 		Encrypted::encrypt(key, self)
 	}
 

@@ -51,9 +51,7 @@ impl SkippedMessageKeys {
 
 		for (header_key, message_keys) in &mut self.0 {
 			// Try to decrypt encrypted header using iterated header key.
-			let Ok(header) = encrypted_header
-				.decrypt(zerocopy::AsBytes::as_bytes(header_key))
-			else {
+			let Ok(header) = encrypted_header.decrypt(header_key) else {
 				continue;
 			};
 
@@ -106,8 +104,8 @@ mod tests {
 		assert_eq!(keys.0.get(&header_key).unwrap().len(), 2);
 
 		// Create the header and encrypt it.
-		let encrypted_header = crate::header::Header::new([3; 32], 2, 0)
-			.encrypt(zerocopy::AsBytes::as_bytes(&header_key));
+		let encrypted_header =
+			crate::header::Header::new([3; 32], 2, 0).encrypt(&header_key);
 
 		// Test removing of second message key.
 		assert_eq!(
