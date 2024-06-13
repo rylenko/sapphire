@@ -39,7 +39,7 @@ impl SkippedMessageKeys {
 	/// [header key]: crate::key::Header
 	/// [encrypted header]: crate::header::Encrypted
 	#[must_use]
-	pub(super) fn find_and_remove(
+	pub(super) fn extract(
 		&mut self,
 		encrypted_header: &crate::header::Encrypted,
 	) -> Option<crate::key::Message> {
@@ -82,7 +82,7 @@ impl SkippedMessageKeys {
 #[cfg(test)]
 mod tests {
 	#[test]
-	fn test_find_and_remove() {
+	fn test_extract() {
 		// Create test keys.
 		let header_key = crate::key::Header::new([0; 32]);
 		let message_key_1 = crate::key::Message::new([1; 32]);
@@ -108,17 +108,14 @@ mod tests {
 			crate::header::Header::new([3; 32], 2, 0).encrypt(&header_key);
 
 		// Test removing of second message key.
-		assert_eq!(
-			keys.find_and_remove(&encrypted_header),
-			Some(message_key_2)
-		);
+		assert_eq!(keys.extract(&encrypted_header), Some(message_key_2));
 
 		// Test that first message key still here.
 		assert_eq!(keys.0.len(), 1);
 		assert_eq!(keys.0.get(&header_key).unwrap().len(), 1);
 
-		// Try to find and remove message key that not in the storage.
-		assert_eq!(keys.find_and_remove(&encrypted_header), None);
+		// Try to extract the message key that not in the storage.
+		assert_eq!(keys.extract(&encrypted_header), None);
 	}
 
 	#[test]

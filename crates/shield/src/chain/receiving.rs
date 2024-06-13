@@ -59,6 +59,21 @@ impl Receiving {
 		}
 	}
 
+	/// Finds and removes skipped message key using [encrypted header].
+	///
+	/// See [extract] for more.
+	///
+	/// [encrypted header]: crate::header::Encrypted
+	/// [extract]: super::skipped_message_keys::SkippedMessageKeys::extract
+	#[inline]
+	#[must_use]
+	pub(crate) fn extract_skipped_message_key(
+		&mut self,
+		encrypted_header: &crate::header::Encrypted,
+	) -> Option<crate::key::Message> {
+		self.skipped_message_keys.extract(encrypted_header)
+	}
+
 	/// Moves receiving chain forward using [master key] [evolving] if
 	/// [master key] is set. So see [master key] [evolving] method for more.
 	///
