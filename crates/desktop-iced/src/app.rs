@@ -149,14 +149,14 @@ impl App {
 				iced::Theme::SolarizedLight => {
 					crate::message::Message::SolarizedLightTheme
 				}
+				iced::Theme::TokyoNight => {
+					crate::message::Message::TokyoNightTheme
+				}
 				iced::Theme::TokyoNightLight => {
 					crate::message::Message::TokyoNightLightTheme
 				}
 				iced::Theme::TokyoNightStorm => {
 					crate::message::Message::TokyoNightStormTheme
-				}
-				iced::Theme::TokyoNight => {
-					crate::message::Message::TokyoNightTheme
 				}
 				iced::Theme::Oxocarbon => {
 					crate::message::Message::OxocarbonTheme
@@ -282,14 +282,14 @@ impl iced::Application for App {
 			Self::Message::SolarizedLightTheme => {
 				self.settings.theme = iced::Theme::SolarizedLight;
 			}
+			Self::Message::TokyoNightTheme => {
+				self.settings.theme = iced::Theme::TokyoNight;
+			}
 			Self::Message::TokyoNightLightTheme => {
 				self.settings.theme = iced::Theme::TokyoNightLight;
 			}
 			Self::Message::TokyoNightStormTheme => {
 				self.settings.theme = iced::Theme::TokyoNightStorm;
-			}
-			Self::Message::TokyoNightTheme => {
-				self.settings.theme = iced::Theme::TokyoNight;
 			}
 			Self::Message::OxocarbonTheme => {
 				self.settings.theme = iced::Theme::Oxocarbon;

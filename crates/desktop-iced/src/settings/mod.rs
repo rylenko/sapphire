@@ -1,7 +1,7 @@
 pub(crate) mod json;
 
 /// Trait for settings loaders.
-pub(crate) trait Loader<'a> {
+pub(crate) trait Loader {
 	type Error;
 
 	/// Loads settings to the storage.
@@ -9,7 +9,7 @@ pub(crate) trait Loader<'a> {
 }
 
 /// Trait for settings savers.
-pub(crate) trait Saver<'a> {
+pub(crate) trait Saver {
 	type Error;
 
 	/// Saves settings to the storage.
@@ -97,7 +97,28 @@ mod theme_serde {
 		let string: String = serde::Deserialize::deserialize(deserializer)?;
 
 		// Get theme using deserialized string.
-		let theme = match &string {
+		let theme = match string.as_str() {
+			"CatppuccinFrappe" => iced::Theme::CatppuccinFrappe,
+			"CatppuccinLatte" => iced::Theme::CatppuccinLatte,
+			"CatppuccinMacchiato" => iced::Theme::CatppuccinMacchiato,
+			"CatppuccinMocha" => iced::Theme::CatppuccinMocha,
+			"Dark" => iced::Theme::Dark,
+			"Dracula" => iced::Theme::Dracula,
+			"GruvboxDark" => iced::Theme::GruvboxDark,
+			"GruvboxLight" => iced::Theme::GruvboxLight,
+			"KanagawaDragon" => iced::Theme::KanagawaDragon,
+			"KanagawaLotus" => iced::Theme::KanagawaLotus,
+			"KanagawaWave" => iced::Theme::KanagawaWave,
+			"Light" => iced::Theme::Light,
+			"Moonfly" => iced::Theme::Moonfly,
+			"Nightfly" => iced::Theme::Nightfly,
+			"Nord" => iced::Theme::Nord,
+			"SolarizedDark" => iced::Theme::SolarizedDark,
+			"SolarizedLight" => iced::Theme::SolarizedLight,
+			"TokyoNight" => iced::Theme::TokyoNight,
+			"TokyoNightLight" => iced::Theme::TokyoNightLight,
+			"TokyoNightStorm" => iced::Theme::TokyoNightStorm,
+			"Oxocarbon" => iced::Theme::Oxocarbon,
 			_ => super::Settings::default_theme(),
 		};
 		Ok(theme)

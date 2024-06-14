@@ -9,6 +9,14 @@ version = "1.0.203"
 [dependencies.serde_json]
 version = "1.0.117"
 
+[dependencies.tokio]
+features = ["fs"]
+version = "1.38.0"
+
+[dev-dependencies.tokio]
+features = ["macros", "rt"]
+version = "1.38.0"
+
 [lints]
 workspace = true
 
