@@ -67,7 +67,7 @@ where
 	}
 }
 
-impl<P> super::Loader for Loader<P>
+impl<P> super::loader::Loader for Loader<P>
 where
 	P: AsRef<std::path::Path>,
 {
@@ -150,7 +150,7 @@ where
 	}
 }
 
-impl<P> super::Saver for Saver<P>
+impl<P> super::saver::Saver for Saver<P>
 where
 	P: AsRef<std::path::Path>,
 {

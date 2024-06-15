@@ -221,7 +221,7 @@ impl App {
 		.size(self.settings.scale(11.0))
 	}
 
-	fn get_save_settings_command(
+	fn get_settings_save_command(
 		&self,
 	) -> iced::Command<crate::message::Message> {
 		// iced::Command's background task to save settings. Settings must be
@@ -230,7 +230,6 @@ impl App {
 			crate::settings::Saver::save(&*crate::settings::SAVER, &settings)
 				.await
 		};
-
 		iced::Command::perform(
 			// TODO: use std::sync::Arc<tokio::sync::Mutex<...>> if
 			// settings become too big.
@@ -327,7 +326,7 @@ impl iced::Application for App {
 				self.settings.theme = iced::Theme::Nord;
 			}
 			Self::Message::SaveSettings => {
-				return self.get_save_settings_command()
+				return self.get_settings_save_command()
 			}
 			Self::Message::Scale(scale) => self.settings.scale = scale,
 			Self::Message::Settings(settings) => self.settings = settings,
@@ -366,54 +365,6 @@ impl iced::Application for App {
 		match self.page {
 			crate::page::Page::Settings => self.create_settings_page(),
 			crate::page::Page::Start => self.create_start_page(),
-		}
-	}
-}
-
-/// Settings save error.
-#[derive(Debug)]
-#[non_exhaustive]
-pub(crate) enum SaveSettingsError {
-	/// Failed to create config directory.
-	CreateConfigDir(std::io::Error),
-	/// Failed to save settings. Contains trait because we can store settings
-	/// in different formats.
-	Save(Box<dyn core::error::Error + 'static>),
-}
-
-impl From<Box<dyn core::error::Error>> for SaveSettingsError {
-	#[inline]
-	#[must_use]
-	fn from(e: Box<dyn core::error::Error + 'static>) -> Self {
-		Self::Save(e)
-	}
-}
-
-impl From<std::io::Error> for SaveSettingsError {
-	#[inline]
-	#[must_use]
-	fn from(e: std::io::Error) -> Self {
-		Self::CreateConfigDir(e)
-	}
-}
-
-impl core::error::Error for SaveSettingsError {
-	#[must_use]
-	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
-		match self {
-			Self::CreateConfigDir(ref e) => Some(e),
-			Self::Save(ref e) => Some(e.as_ref()),
-		}
-	}
-}
-
-impl core::fmt::Display for SaveSettingsError {
-	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-		match self {
-			Self::CreateConfigDir(..) => {
-				write!(f, "Failed to create config directory.")
-			}
-			Self::Save(..) => write!(f, "Failed to save settings."),
 		}
 	}
 }
