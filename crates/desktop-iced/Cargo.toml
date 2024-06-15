@@ -1,5 +1,5 @@
-[dependencies.home]
-version = "0.5.9"
+[dependencies.dirs]
+version = "5.0.1"
 
 [dependencies.iced]
 features = ["advanced", "tokio"]

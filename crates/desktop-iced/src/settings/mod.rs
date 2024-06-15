@@ -1,19 +1,23 @@
 pub(crate) mod json;
+mod loader;
+mod saver;
 
-/// Trait for settings loaders.
-pub(crate) trait Loader {
-	type Error;
+pub(crate) use {loader::Loader, saver::Saver};
 
-	/// Loads settings to the storage.
-	async fn load(&self) -> Result<Settings, Self::Error>;
-}
+lazy_static::lazy_static! {
+	/// Application settings loader.
+	pub(crate) static ref LOADER: crate::settings::json::Loader<&'static std::path::Path> =
+		crate::settings::json::Loader::new(&PATH);
 
-/// Trait for settings savers.
-pub(crate) trait Saver {
-	type Error;
+	/// Application settings saver.
+	pub(crate) static ref SAVER: crate::settings::json::Saver<&'static std::path::Path> =
+		crate::settings::json::Saver::new(&PATH);
 
-	/// Saves settings to the storage.
-	async fn save(&self, settings: &Settings) -> Result<(), Self::Error>;
+	/// Application settings file path.
+	///
+	/// TODO: create config dir if not exists?
+	static ref PATH: std::path::PathBuf =
+		dirs::config_dir().expect("Failed to get config directory").join("sapphire");
 }
 
 /// Settings of the desktop application.
