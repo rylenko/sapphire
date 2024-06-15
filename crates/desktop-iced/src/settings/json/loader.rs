@@ -47,31 +47,20 @@ impl core::fmt::Display for LoadError {
 	}
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
-pub(crate) struct Loader<P>
-where
-	P: AsRef<std::path::Path>,
-{
-	path: P,
+pub(crate) struct Loader {
+	path: std::path::PathBuf,
 }
 
-impl<P> Loader<P>
-where
-	P: AsRef<std::path::Path>,
-{
+impl crate::settings::Loader for Loader {
+	type Error = LoadError;
+
 	#[inline]
 	#[must_use]
-	pub(crate) const fn new(path: P) -> Self {
-		Self { path }
+	fn new(path: impl Into<std::path::PathBuf>) -> Self {
+		Self { path: Into::into(path) }
 	}
-}
-
-impl<P> crate::settings::Loader for Loader<P>
-where
-	P: AsRef<std::path::Path>,
-{
-	type Error = LoadError;
 
 	async fn load(&self) -> Result<crate::settings::Settings, Self::Error> {
 		// Read bytes from a file.

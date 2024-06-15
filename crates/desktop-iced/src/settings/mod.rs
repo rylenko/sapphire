@@ -2,21 +2,16 @@ pub(crate) mod json;
 mod loader;
 mod saver;
 
-pub(crate) use {loader::Loader, saver::Saver};
+pub(crate) use {
+	loader::{Loader, LoaderImpl},
+	saver::{Saver, SaverImpl},
+};
 
 lazy_static::lazy_static! {
-	/// Application settings loader.
-	pub(crate) static ref LOADER: crate::settings::json::Loader<&'static std::path::Path> =
-		crate::settings::json::Loader::new(&PATH);
-
-	/// Application settings saver.
-	pub(crate) static ref SAVER: crate::settings::json::Saver<&'static std::path::Path> =
-		crate::settings::json::Saver::new(&PATH);
-
 	/// Application settings file path.
 	///
 	/// TODO: create config dir if not exists?
-	static ref PATH: std::path::PathBuf =
+	pub(crate) static ref PATH: std::path::PathBuf =
 		dirs::config_dir().expect("Failed to get config directory").join("sapphire");
 }
 

@@ -23,7 +23,11 @@ impl App {
 	/// must set the default settings.
 	fn get_init_commands() -> iced::Command<crate::message::Message> {
 		iced::Command::perform(
-			crate::settings::Loader::load(&*crate::settings::LOADER),
+			async {
+				let loader: crate::settings::LoaderImpl =
+					crate::settings::Loader::new(&*crate::settings::PATH);
+				crate::settings::Loader::load(&loader).await
+			},
 			// TODO: Use Message::Error on error and then log an error.
 			|result| {
 				crate::message::Message::Settings(
@@ -227,8 +231,9 @@ impl App {
 		// iced::Command's background task to save settings. Settings must be
 		// cloned there.
 		let save = async |settings: crate::settings::Settings| {
-			crate::settings::Saver::save(&*crate::settings::SAVER, &settings)
-				.await
+			let saver: crate::settings::SaverImpl =
+				crate::settings::Saver::new(&*crate::settings::PATH);
+			crate::settings::Saver::save(&saver, &settings).await
 		};
 		iced::Command::perform(
 			// TODO: use std::sync::Arc<tokio::sync::Mutex<...>> if
