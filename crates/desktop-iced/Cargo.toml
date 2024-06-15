@@ -1,6 +1,12 @@
+[dependencies.home]
+version = "0.5.9"
+
 [dependencies.iced]
-features = ["advanced"]
+features = ["advanced", "tokio"]
 version = "0.12.1"
+
+[dependencies.lazy_static]
+version = "1.4.0"
 
 [dependencies.serde]
 features = ["derive"]

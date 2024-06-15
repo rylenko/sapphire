@@ -62,7 +62,7 @@ where
 {
 	#[inline]
 	#[must_use]
-	pub(crate) fn new(path: P) -> Self {
+	pub(crate) const fn new(path: P) -> Self {
 		Self { path }
 	}
 }
@@ -73,7 +73,7 @@ where
 {
 	type Error = LoadError;
 
-	async fn load(&mut self) -> Result<super::Settings, Self::Error> {
+	async fn load(&self) -> Result<super::Settings, Self::Error> {
 		// Read bytes from a file.
 		let bytes = tokio::fs::read(&self.path).await?;
 		// Deserialize bytes to settings structure.
@@ -145,7 +145,7 @@ where
 {
 	#[inline]
 	#[must_use]
-	pub(crate) fn new(path: P) -> Self {
+	pub(crate) const fn new(path: P) -> Self {
 		Self { path }
 	}
 }
@@ -157,7 +157,7 @@ where
 	type Error = SaveError;
 
 	async fn save(
-		&mut self,
+		&self,
 		settings: &super::Settings,
 	) -> Result<(), Self::Error> {
 		// Serialize settings to bytes.
@@ -182,15 +182,13 @@ mod tests {
 		path.set_extension("json");
 
 		// Save the settings.
-		let mut saver = super::Saver::new(&path);
-		assert!(crate::settings::Saver::save(&mut saver, &settings)
-			.await
-			.is_ok());
+		let saver = super::Saver::new(&path);
+		assert!(crate::settings::Saver::save(&saver, &settings).await.is_ok());
 
 		// Test loader.
-		let mut loader = super::Loader::new(&path);
+		let loader = super::Loader::new(&path);
 		assert_eq!(
-			crate::settings::Loader::load(&mut loader).await.unwrap(),
+			crate::settings::Loader::load(&loader).await.unwrap(),
 			settings
 		);
 	}

@@ -1,3 +1,33 @@
+lazy_static::lazy_static! {
+	/// Application configuration directory.
+	static ref CONFIG_DIR: std::path::PathBuf =
+		home::home_dir()
+			.expect("Failed to get home directory")
+			.join(".config/sapphire");
+
+	/// Application settings path.
+	static ref SETTINGS_PATH: std::path::PathBuf = CONFIG_DIR.join("settings");
+
+	/// Application settings loader.
+	static ref SETTINGS_LOADER: crate::settings::json::Loader<&'static std::path::Path> =
+		crate::settings::json::Loader::new(&SETTINGS_PATH);
+
+	/// Application settings saver.
+	static ref SETTINGS_SAVER: crate::settings::json::Saver<&'static std::path::Path> =
+		crate::settings::json::Saver::new(&SETTINGS_PATH);
+}
+
+/// Desktop application.
+///
+/// # Configuration directory
+///
+/// The configuration directory is located at the path ~/.config/sapphire. It
+/// should be created on demand if it does not exist.
+///
+/// The settings are located at ~/.config/sapphire/settings. If the file does
+/// not exist or has invalid data, the application must set the default
+/// settings. The settings file should only be changed when the current user
+/// settings are saved.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct App {
 	page: crate::page::Page,
@@ -5,6 +35,34 @@ pub(crate) struct App {
 }
 
 impl App {
+	#[must_use]
+	fn get_init_commands() -> iced::Command<crate::message::Message> {
+		// Command to async load settings. This command may fail if the file
+		// does not exist or has invalid data. In this case, the application
+		// must set the default settings.
+		iced::Command::perform(
+			crate::settings::Loader::load(&*SETTINGS_LOADER),
+			// TODO: Use Message::Error on error and then log an error.
+			|result| {
+				crate::message::Message::Settings(
+					result.expect("Failed to load settings."),
+				)
+			},
+		)
+	}
+
+	async fn save_settings(
+		settings: crate::settings::Settings,
+	) -> Result<(), SaveSettingsError> {
+		// Make sure that configuration directory exists.
+		tokio::fs::create_dir_all(&*CONFIG_DIR).await?;
+		// Save current settings.
+		crate::settings::Saver::save(&*SETTINGS_SAVER, &settings)
+			.await
+			.map_err(|e| SaveSettingsError::Save(Into::into(e)))?;
+		Ok(())
+	}
+
 	#[must_use]
 	fn create_header(
 		&self,
@@ -98,6 +156,7 @@ impl App {
 		iced::widget::button(
 			iced::widget::text("Save").size(self.settings.scale(11.0)),
 		)
+		.on_press(crate::message::Message::SaveSettings)
 	}
 
 	#[must_use]
@@ -201,13 +260,12 @@ impl iced::Application for App {
 
 	#[inline]
 	fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-		(
-			Self {
-				page: crate::page::Page::default(),
-				settings: crate::settings::Settings::default(),
-			},
-			iced::Command::none(),
-		)
+		// Create the aplication.
+		let app = Self {
+			page: crate::page::Page::default(),
+			settings: crate::settings::Settings::default(),
+		};
+		(app, Self::get_init_commands())
 	}
 
 	#[inline]
@@ -272,10 +330,24 @@ impl iced::Application for App {
 			Self::Message::NightflyTheme => {
 				self.settings.theme = iced::Theme::Nightfly;
 			}
+			Self::Message::None => {}
 			Self::Message::NordTheme => {
 				self.settings.theme = iced::Theme::Nord;
 			}
+			Self::Message::SaveSettings => {
+				return iced::Command::perform(
+					// TODO: use std::sync::Arc<tokio::sync::Mutex<...>> if
+					// settings become too big.
+					Self::save_settings(Clone::clone(&self.settings)),
+					|result| {
+						// TODO: Use Message::Error on error + iced::Command
+						result.expect("Failed to save settings.");
+						Self::Message::None
+					},
+				);
+			}
 			Self::Message::Scale(scale) => self.settings.scale = scale,
+			Self::Message::Settings(settings) => self.settings = settings,
 			Self::Message::SolarizedDarkTheme => {
 				self.settings.theme = iced::Theme::SolarizedDark;
 			}
@@ -311,6 +383,53 @@ impl iced::Application for App {
 		match self.page {
 			crate::page::Page::Settings => self.create_settings_page(),
 			crate::page::Page::Start => self.create_start_page(),
+		}
+	}
+}
+
+/// Settings save error.
+#[derive(Debug)]
+#[non_exhaustive]
+pub(crate) enum SaveSettingsError {
+	/// Failed to create config directory.
+	CreateConfigDir(std::io::Error),
+	/// Failed to save settings.
+	Save(Box<dyn core::error::Error + 'static>),
+}
+
+impl From<Box<dyn core::error::Error>> for SaveSettingsError {
+	#[inline]
+	#[must_use]
+	fn from(e: Box<dyn core::error::Error + 'static>) -> Self {
+		Self::Save(e)
+	}
+}
+
+impl From<std::io::Error> for SaveSettingsError {
+	#[inline]
+	#[must_use]
+	fn from(e: std::io::Error) -> Self {
+		Self::CreateConfigDir(e)
+	}
+}
+
+impl core::error::Error for SaveSettingsError {
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			Self::CreateConfigDir(ref e) => Some(e),
+			Self::Save(ref e) => Some(e.as_ref()),
+		}
+	}
+}
+
+impl core::fmt::Display for SaveSettingsError {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::CreateConfigDir(..) => {
+				write!(f, "Failed to create config directory.")
+			}
+			Self::Save(..) => write!(f, "Failed to save settings."),
 		}
 	}
 }

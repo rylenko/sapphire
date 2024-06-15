@@ -1,4 +1,5 @@
-#[derive(Clone, Copy, Debug, PartialEq)]
+/// Application update messages.
+#[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub(crate) enum Message {
 	CatppuccinFrappeTheme,
@@ -8,6 +9,7 @@ pub(crate) enum Message {
 	DarkTheme,
 	DefaultSettings,
 	DraculaTheme,
+	//Error(Error),
 	GruvboxDarkTheme,
 	GruvboxLightTheme,
 	KanagawaDragonTheme,
@@ -16,8 +18,11 @@ pub(crate) enum Message {
 	LightTheme,
 	MoonflyTheme,
 	NightflyTheme,
+	None,
 	NordTheme,
+	SaveSettings,
 	Scale(f32),
+	Settings(crate::settings::Settings),
 	SolarizedDarkTheme,
 	SolarizedLightTheme,
 	TokyoNightLightTheme,

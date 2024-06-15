@@ -5,7 +5,7 @@ pub(crate) trait Loader {
 	type Error;
 
 	/// Loads settings to the storage.
-	async fn load(&mut self) -> Result<Settings, Self::Error>;
+	async fn load(&self) -> Result<Settings, Self::Error>;
 }
 
 /// Trait for settings savers.
@@ -13,7 +13,7 @@ pub(crate) trait Saver {
 	type Error;
 
 	/// Saves settings to the storage.
-	async fn save(&mut self, settings: &Settings) -> Result<(), Self::Error>;
+	async fn save(&self, settings: &Settings) -> Result<(), Self::Error>;
 }
 
 /// Settings of the desktop application.
@@ -39,7 +39,7 @@ impl Settings {
 	/// Creates new settings.
 	#[inline]
 	#[must_use]
-	pub(crate) fn new(scale: f32, theme: iced::Theme) -> Self {
+	pub(crate) const fn new(scale: f32, theme: iced::Theme) -> Self {
 		Self { scale, theme }
 	}
 
@@ -98,26 +98,26 @@ mod theme_serde {
 
 		// Get theme using deserialized string.
 		let theme = match string.as_str() {
-			"CatppuccinFrappe" => iced::Theme::CatppuccinFrappe,
-			"CatppuccinLatte" => iced::Theme::CatppuccinLatte,
-			"CatppuccinMacchiato" => iced::Theme::CatppuccinMacchiato,
-			"CatppuccinMocha" => iced::Theme::CatppuccinMocha,
+			"Catppuccin Frappe" => iced::Theme::CatppuccinFrappe,
+			"Catppuccin Latte" => iced::Theme::CatppuccinLatte,
+			"Catppuccin Macchiato" => iced::Theme::CatppuccinMacchiato,
+			"Catppuccin Mocha" => iced::Theme::CatppuccinMocha,
 			"Dark" => iced::Theme::Dark,
 			"Dracula" => iced::Theme::Dracula,
-			"GruvboxDark" => iced::Theme::GruvboxDark,
-			"GruvboxLight" => iced::Theme::GruvboxLight,
-			"KanagawaDragon" => iced::Theme::KanagawaDragon,
-			"KanagawaLotus" => iced::Theme::KanagawaLotus,
-			"KanagawaWave" => iced::Theme::KanagawaWave,
+			"Gruvbox Dark" => iced::Theme::GruvboxDark,
+			"Gruvbox Light" => iced::Theme::GruvboxLight,
+			"Kanagawa Dragon" => iced::Theme::KanagawaDragon,
+			"Kanagawa Lotus" => iced::Theme::KanagawaLotus,
+			"Kanagawa Wave" => iced::Theme::KanagawaWave,
 			"Light" => iced::Theme::Light,
 			"Moonfly" => iced::Theme::Moonfly,
 			"Nightfly" => iced::Theme::Nightfly,
 			"Nord" => iced::Theme::Nord,
-			"SolarizedDark" => iced::Theme::SolarizedDark,
-			"SolarizedLight" => iced::Theme::SolarizedLight,
-			"TokyoNight" => iced::Theme::TokyoNight,
-			"TokyoNightLight" => iced::Theme::TokyoNightLight,
-			"TokyoNightStorm" => iced::Theme::TokyoNightStorm,
+			"Solarized Dark" => iced::Theme::SolarizedDark,
+			"Solarized Light" => iced::Theme::SolarizedLight,
+			"Tokyo Night" => iced::Theme::TokyoNight,
+			"Tokyo Night Light" => iced::Theme::TokyoNightLight,
+			"Tokyo Night Storm" => iced::Theme::TokyoNightStorm,
 			"Oxocarbon" => iced::Theme::Oxocarbon,
 			_ => super::Settings::default_theme(),
 		};
