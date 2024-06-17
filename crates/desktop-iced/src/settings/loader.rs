@@ -1,6 +1,3 @@
-/// [`Loader`] implementation.
-pub(crate) type LoaderImpl = super::json::Loader;
-
 /// Trait for settings loaders.
 pub(crate) trait Loader {
 	type Error;

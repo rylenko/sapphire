@@ -22,19 +22,23 @@ impl App {
 	/// does not exist or has invalid data. In this case, the application
 	/// must set the default settings.
 	fn get_init_commands() -> iced::Command<crate::message::Message> {
-		iced::Command::perform(
-			async {
-				let loader: crate::settings::LoaderImpl =
-					crate::settings::Loader::new(&*crate::settings::PATH);
-				crate::settings::Loader::load(&loader).await
-			},
-			// TODO: Use Message::Error on error and then log an error.
-			|result| {
-				crate::message::Message::Settings(
-					result.expect("Failed to load settings."),
-				)
-			},
-		)
+		iced::Command::batch([Self::get_settings_load_command()])
+	}
+
+	fn get_settings_load_command() -> iced::Command<crate::message::Message> {
+		// iced::Command's background task to load settings.
+		let load_settings = async {
+			let loader: crate::settings::LoaderImpl =
+				crate::settings::Loader::new(&*crate::settings::PATH);
+			crate::settings::Loader::load(&loader).await
+		};
+		iced::Command::perform(load_settings, |result| {
+			crate::message::Message::Settings(
+				// TODO: Use Message::Error on error and then log an
+				// error.
+				result.expect("Failed to load settings."),
+			)
+		})
 	}
 
 	#[must_use]

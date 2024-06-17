@@ -1,18 +1,25 @@
 pub(crate) mod json;
+
 mod loader;
+mod loader_impl;
 mod saver;
+mod saver_impl;
 
 pub(crate) use {
-	loader::{Loader, LoaderImpl},
-	saver::{Saver, SaverImpl},
+	loader::Loader, loader_impl::LoaderImpl, saver::Saver,
+	saver_impl::SaverImpl,
 };
 
 lazy_static::lazy_static! {
 	/// Application settings file path.
 	///
-	/// TODO: create config dir if not exists?
+	/// TODO: move to method Settings::get_path() and remove lazy_static.
+	/// TODO: use .config/sapphire/desktop-iced.
+	/// TODO: create config dir if not exists.
 	pub(crate) static ref PATH: std::path::PathBuf =
-		dirs::config_dir().expect("Failed to get config directory").join("sapphire");
+		dirs::config_dir()
+			.expect("Failed to get config directory")
+			.join("sapphire-desktop-iced");
 }
 
 /// Settings of the desktop application.
