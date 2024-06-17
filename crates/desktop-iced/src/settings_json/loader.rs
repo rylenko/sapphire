@@ -53,10 +53,7 @@ pub(crate) struct Loader<P> {
 	path: P,
 }
 
-impl<P> Loader<P>
-where
-	P: AsRef<std::path::Path>,
-{
+impl<P> Loader<P> {
 	/// Creates new loader.
 	#[inline]
 	#[must_use]

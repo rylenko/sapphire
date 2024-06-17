@@ -52,10 +52,7 @@ pub(crate) struct Saver<P> {
 	path: P,
 }
 
-impl<P> Saver<P>
-where
-	P: AsRef<std::path::Path>,
-{
+impl<P> Saver<P> {
 	/// Creates new saver.
 	#[inline]
 	#[must_use]
