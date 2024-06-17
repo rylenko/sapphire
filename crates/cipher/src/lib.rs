@@ -12,33 +12,6 @@ pub use auth::Tag;
 /// Key derivation function used in cipher struct to derive keys.
 type KdfImpl = hkdf::Hkdf<sha2::Sha256>;
 
-/// Decryption error.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[non_exhaustive]
-pub enum DecryptError {
-	/// Accepted authentication code is not equal to real one.
-	Auth,
-}
-
-impl core::error::Error for DecryptError {
-	#[inline]
-	#[must_use]
-	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
-		match self {
-			Self::Auth => None,
-		}
-	}
-}
-
-impl core::fmt::Display for DecryptError {
-	#[inline]
-	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-		match self {
-			Self::Auth => write!(f, "Authentication codes are not equal."),
-		}
-	}
-}
-
 /// Cipher type to [encrypt] and [decrypt] the data.
 ///
 /// [encrypt]: Self::encrypt
@@ -123,6 +96,33 @@ impl Cipher {
 	#[inline]
 	pub fn seek(&mut self, pos: usize) {
 		chacha20::cipher::StreamCipherSeek::seek(&mut self.inner, pos);
+	}
+}
+
+/// Decryption error.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum DecryptError {
+	/// Accepted authentication code is not equal to real one.
+	Auth,
+}
+
+impl core::error::Error for DecryptError {
+	#[inline]
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			Self::Auth => None,
+		}
+	}
+}
+
+impl core::fmt::Display for DecryptError {
+	#[inline]
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::Auth => write!(f, "Authentication codes are not equal."),
+		}
 	}
 }
 

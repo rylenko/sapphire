@@ -1,3 +1,6 @@
+/// Implementation of [`Mac`] used for authentication.
+///
+/// [`Mac`]: hmac::Mac
 type MacImpl = hmac::Hmac<sha2::Sha256>;
 
 /// Authentication tag, which is equal to the cutted message authentication
