@@ -42,6 +42,9 @@ impl Settings {
 		Self { scale, theme }
 	}
 
+	/// Loads settings using passed [`loader`].
+	///
+	/// [`loader`]: loader::Loader
 	#[inline]
 	pub(crate) async fn load<L>(loader: &L) -> Result<Self, L::Error>
 	where
@@ -70,6 +73,9 @@ impl Settings {
 		*self = Self::default();
 	}
 
+	/// Saves current settings using passed [`saver`].
+	///
+	/// [`saver`]: saver::Saver
 	#[inline]
 	pub(crate) async fn save<S>(&self, saver: &S) -> Result<(), S::Error>
 	where

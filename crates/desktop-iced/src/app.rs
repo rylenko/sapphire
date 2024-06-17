@@ -47,12 +47,14 @@ impl App {
 
 		match self.page {
 			crate::page::Page::Start => {
-				settings_button = settings_button
-					.on_press(crate::message::Message::SettingsPage);
+				settings_button = settings_button.on_press(
+					crate::message::Message::Page(crate::page::Page::Settings),
+				);
 			}
 			crate::page::Page::Settings => {
-				start_button =
-					start_button.on_press(crate::message::Message::StartPage);
+				start_button = start_button.on_press(
+					crate::message::Message::Page(crate::page::Page::Start),
+				);
 			}
 		}
 
@@ -137,62 +139,7 @@ impl App {
 		let list = iced::widget::pick_list(
 			iced::Theme::ALL,
 			Some(Clone::clone(&self.settings.theme)),
-			|theme| match theme {
-				iced::Theme::CatppuccinFrappe => {
-					crate::message::Message::CatppuccinFrappeTheme
-				}
-				iced::Theme::CatppuccinLatte => {
-					crate::message::Message::CatppuccinLatteTheme
-				}
-				iced::Theme::CatppuccinMacchiato => {
-					crate::message::Message::CatppuccinMacchiatoTheme
-				}
-				iced::Theme::CatppuccinMocha => {
-					crate::message::Message::CatppuccinMochaTheme
-				}
-				iced::Theme::Dark => crate::message::Message::DarkTheme,
-				iced::Theme::Dracula => crate::message::Message::DraculaTheme,
-				iced::Theme::GruvboxDark => {
-					crate::message::Message::GruvboxDarkTheme
-				}
-				iced::Theme::GruvboxLight => {
-					crate::message::Message::GruvboxLightTheme
-				}
-				iced::Theme::KanagawaDragon => {
-					crate::message::Message::KanagawaDragonTheme
-				}
-				iced::Theme::KanagawaLotus => {
-					crate::message::Message::KanagawaLotusTheme
-				}
-				iced::Theme::KanagawaWave => {
-					crate::message::Message::KanagawaWaveTheme
-				}
-				iced::Theme::Light => crate::message::Message::LightTheme,
-				iced::Theme::Moonfly => crate::message::Message::MoonflyTheme,
-				iced::Theme::Nightfly => {
-					crate::message::Message::NightflyTheme
-				}
-				iced::Theme::Nord => crate::message::Message::NordTheme,
-				iced::Theme::SolarizedDark => {
-					crate::message::Message::SolarizedDarkTheme
-				}
-				iced::Theme::SolarizedLight => {
-					crate::message::Message::SolarizedLightTheme
-				}
-				iced::Theme::TokyoNight => {
-					crate::message::Message::TokyoNightTheme
-				}
-				iced::Theme::TokyoNightLight => {
-					crate::message::Message::TokyoNightLightTheme
-				}
-				iced::Theme::TokyoNightStorm => {
-					crate::message::Message::TokyoNightStormTheme
-				}
-				iced::Theme::Oxocarbon => {
-					crate::message::Message::OxocarbonTheme
-				}
-				iced::Theme::Custom(..) => unreachable!(),
-			},
+			crate::message::Message::Theme,
 		)
 		.placeholder("Pick a theme...")
 		.text_size(self.settings.scale(11.0));
@@ -302,89 +249,24 @@ impl iced::Application for App {
 		&mut self,
 		message: Self::Message,
 	) -> iced::Command<Self::Message> {
+		let mut commands = vec![];
 		match message {
-			Self::Message::CatppuccinFrappeTheme => {
-				self.settings.theme = iced::Theme::CatppuccinFrappe;
-			}
-			Self::Message::CatppuccinLatteTheme => {
-				self.settings.theme = iced::Theme::CatppuccinLatte;
-			}
-			Self::Message::CatppuccinMacchiatoTheme => {
-				self.settings.theme = iced::Theme::CatppuccinMacchiato;
-			}
-			Self::Message::CatppuccinMochaTheme => {
-				self.settings.theme = iced::Theme::CatppuccinMocha;
-			}
-			Self::Message::DarkTheme => {
-				self.settings.theme = iced::Theme::Dark;
-			}
 			Self::Message::DefaultSettings => {
 				self.settings.restore_defaults();
 			}
-			Self::Message::DraculaTheme => {
-				self.settings.theme = iced::Theme::Dracula;
-			}
-			Self::Message::GruvboxDarkTheme => {
-				self.settings.theme = iced::Theme::GruvboxDark;
-			}
-			Self::Message::GruvboxLightTheme => {
-				self.settings.theme = iced::Theme::GruvboxLight;
-			}
-			Self::Message::KanagawaDragonTheme => {
-				self.settings.theme = iced::Theme::KanagawaDragon;
-			}
-			Self::Message::KanagawaLotusTheme => {
-				self.settings.theme = iced::Theme::KanagawaLotus;
-			}
-			Self::Message::KanagawaWaveTheme => {
-				self.settings.theme = iced::Theme::KanagawaWave;
-			}
-			Self::Message::LightTheme => {
-				self.settings.theme = iced::Theme::Light;
-			}
-			Self::Message::MoonflyTheme => {
-				self.settings.theme = iced::Theme::Moonfly;
-			}
-			Self::Message::NightflyTheme => {
-				self.settings.theme = iced::Theme::Nightfly;
+			Self::Message::Exit => {
+				commands.push(iced::window::close(iced::window::Id::MAIN));
 			}
 			Self::Message::None => {}
-			Self::Message::NordTheme => {
-				self.settings.theme = iced::Theme::Nord;
-			}
+			Self::Message::Page(page) => self.page = page,
 			Self::Message::SaveSettings => {
-				return self.get_settings_save_command()
+				commands.push(self.get_settings_save_command());
 			}
 			Self::Message::Scale(scale) => self.settings.scale = scale,
 			Self::Message::Settings(settings) => self.settings = settings,
-			Self::Message::SolarizedDarkTheme => {
-				self.settings.theme = iced::Theme::SolarizedDark;
-			}
-			Self::Message::SolarizedLightTheme => {
-				self.settings.theme = iced::Theme::SolarizedLight;
-			}
-			Self::Message::TokyoNightTheme => {
-				self.settings.theme = iced::Theme::TokyoNight;
-			}
-			Self::Message::TokyoNightLightTheme => {
-				self.settings.theme = iced::Theme::TokyoNightLight;
-			}
-			Self::Message::TokyoNightStormTheme => {
-				self.settings.theme = iced::Theme::TokyoNightStorm;
-			}
-			Self::Message::OxocarbonTheme => {
-				self.settings.theme = iced::Theme::Oxocarbon;
-			}
-			Self::Message::SettingsPage => {
-				self.page = crate::page::Page::Settings;
-			}
-			Self::Message::StartPage => self.page = crate::page::Page::Start,
-			Self::Message::Exit => {
-				return iced::window::close(iced::window::Id::MAIN)
-			}
+			Self::Message::Theme(theme) => self.settings.theme = theme,
 		}
-
-		iced::Command::none()
+		iced::Command::batch(commands)
 	}
 
 	#[must_use]
