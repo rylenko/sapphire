@@ -208,10 +208,33 @@ impl App {
 		let content = iced::widget::column![
 			self.create_header(),
 			self.create_start_page_welcome(),
+			iced::widget::row![
+				self.create_start_page_login_button(),
+				self.create_start_page_register_button(),
+			]
+			.spacing(self.settings.scale(8.0)),
 		]
 		.padding(self.settings.scale(10.0))
 		.spacing(self.settings.scale(8.0));
 		Into::into(content)
+	}
+
+	#[must_use]
+	fn create_start_page_login_button(
+		&self,
+	) -> iced::widget::Button<'static, crate::message::Message> {
+		iced::widget::button(
+			iced::widget::text("Login").size(self.settings.scale(15.0)),
+		)
+	}
+
+	#[must_use]
+	fn create_start_page_register_button(
+		&self,
+	) -> iced::widget::Button<'static, crate::message::Message> {
+		iced::widget::button(
+			iced::widget::text("Register").size(self.settings.scale(15.0)),
+		)
 	}
 
 	#[must_use]
