@@ -48,18 +48,27 @@ impl core::fmt::Display for SaveError {
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
-pub(crate) struct Saver {
-	path: std::path::PathBuf,
+pub(crate) struct Saver<P> {
+	path: P,
 }
 
-impl crate::settings::Saver for Saver {
-	type Error = SaveError;
-
+impl<P> Saver<P>
+where
+	P: AsRef<std::path::Path>,
+{
+	/// Creates new saver.
 	#[inline]
 	#[must_use]
-	fn new(path: impl Into<std::path::PathBuf>) -> Self {
-		Self { path: Into::into(path) }
+	pub(crate) const fn new(path: P) -> Self {
+		Self { path }
 	}
+}
+
+impl<P> crate::settings::Saver for Saver<P>
+where
+	P: AsRef<std::path::Path>,
+{
+	type Error = SaveError;
 
 	async fn save(
 		&self,

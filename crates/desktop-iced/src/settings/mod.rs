@@ -1,21 +1,14 @@
-pub(crate) mod json;
-
 mod loader;
-mod loader_impl;
 mod saver;
-mod saver_impl;
 
-pub(crate) use {
-	loader::Loader, loader_impl::LoaderImpl, saver::Saver,
-	saver_impl::SaverImpl,
-};
+pub(crate) use {loader::Loader, saver::Saver};
 
 lazy_static::lazy_static! {
 	/// Application settings file path.
 	///
 	/// TODO: move to method Settings::get_path() and remove lazy_static.
 	/// TODO: use .config/sapphire/desktop-iced.
-	/// TODO: create config dir if not exists.
+	/// TODO: create config dir awith default config if not exists.
 	pub(crate) static ref PATH: std::path::PathBuf =
 		dirs::config_dir()
 			.expect("Failed to get config directory")
@@ -49,6 +42,14 @@ impl Settings {
 		Self { scale, theme }
 	}
 
+	#[inline]
+	pub(crate) async fn load<L>(loader: &L) -> Result<Self, L::Error>
+	where
+		L: loader::Loader,
+	{
+		loader::Loader::load(loader).await
+	}
+
 	/// Default interface scale.
 	#[inline]
 	#[must_use]
@@ -67,6 +68,14 @@ impl Settings {
 	#[inline]
 	pub(crate) fn restore_defaults(&mut self) {
 		*self = Self::default();
+	}
+
+	#[inline]
+	pub(crate) async fn save<S>(&self, saver: &S) -> Result<(), S::Error>
+	where
+		S: saver::Saver,
+	{
+		saver::Saver::save(saver, self).await
 	}
 
 	/// Scales passed size to interface size using coefficient from the

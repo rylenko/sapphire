@@ -12,6 +12,7 @@ mod app;
 mod message;
 mod page;
 mod settings;
+mod settings_json;
 
 fn main() -> Result<(), Box<iced::Error>> {
 	<app::App as iced::Application>::run(iced::Settings::default())

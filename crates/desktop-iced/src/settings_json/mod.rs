@@ -1,3 +1,10 @@
+/*!
+JSON implementations of [`Loader`] and [`Saver`].
+
+[`Loader`]: crate::settings::Loader
+[`Saver`]: create::settings::Saver
+*/
+
 mod loader;
 mod saver;
 
@@ -14,14 +21,13 @@ mod tests {
 		let path = std::env::temp_dir().join("sapphire-settings-test");
 
 		// Save the settings.
-		let saver: super::saver::Saver = crate::settings::Saver::new(&path);
-		assert!(crate::settings::Saver::save(&saver, &settings).await.is_ok());
+		let saver = super::saver::Saver::new(&path);
+		assert!(settings.save(&saver).await.is_ok());
 
 		// Test loader.
-		let loader: super::loader::Loader =
-			crate::settings::Loader::new(&path);
+		let loader = super::loader::Loader::new(&path);
 		assert_eq!(
-			crate::settings::Loader::load(&loader).await.unwrap(),
+			crate::settings::Settings::load(&loader).await.unwrap(),
 			settings
 		);
 	}

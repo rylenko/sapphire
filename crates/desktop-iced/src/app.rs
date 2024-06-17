@@ -1,14 +1,6 @@
-/// Desktop application.
+/// Desktop application based on [`iced`].
 ///
-/// # Configuration directory
-///
-/// The configuration directory is located at the path ~/.config/sapphire. It
-/// should be created on demand if it does not exist.
-///
-/// The settings are located at ~/.config/sapphire/settings. If the file does
-/// not exist or has invalid data, the application must set the default
-/// settings. The settings file should only be changed when the current user
-/// settings are saved.
+/// TODO: Load settings before window render.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct App {
 	page: crate::page::Page,
@@ -28,9 +20,9 @@ impl App {
 	fn get_settings_load_command() -> iced::Command<crate::message::Message> {
 		// iced::Command's background task to load settings.
 		let load_settings = async {
-			let loader: crate::settings::LoaderImpl =
-				crate::settings::Loader::new(&*crate::settings::PATH);
-			crate::settings::Loader::load(&loader).await
+			let loader =
+				crate::settings_json::Loader::new(&*crate::settings::PATH);
+			crate::settings::Settings::load(&loader).await
 		};
 		iced::Command::perform(load_settings, |result| {
 			crate::message::Message::Settings(
@@ -235,9 +227,9 @@ impl App {
 		// iced::Command's background task to save settings. Settings must be
 		// cloned there.
 		let save = async |settings: crate::settings::Settings| {
-			let saver: crate::settings::SaverImpl =
-				crate::settings::Saver::new(&*crate::settings::PATH);
-			crate::settings::Saver::save(&saver, &settings).await
+			let saver =
+				crate::settings_json::Saver::new(&*crate::settings::PATH);
+			settings.save(&saver).await
 		};
 		iced::Command::perform(
 			// TODO: use std::sync::Arc<tokio::sync::Mutex<...>> if
