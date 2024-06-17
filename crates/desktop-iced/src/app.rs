@@ -20,6 +20,7 @@ impl App {
 	fn get_settings_load_command() -> iced::Command<crate::message::Message> {
 		// iced::Command's background task to load settings.
 		let load_settings = async {
+			// TODO: create loader during application initialization.
 			let loader =
 				crate::settings_json::Loader::new(&*crate::settings::PATH);
 			crate::settings::Settings::load(&loader).await
@@ -227,6 +228,8 @@ impl App {
 		// iced::Command's background task to save settings. Settings must be
 		// cloned there.
 		let save = async |settings: crate::settings::Settings| {
+			// Create settings saver and save current settings.
+			// TODO: create saver during application initialization.
 			let saver =
 				crate::settings_json::Saver::new(&*crate::settings::PATH);
 			settings.save(&saver).await

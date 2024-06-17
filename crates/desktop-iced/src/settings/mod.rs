@@ -53,14 +53,14 @@ impl Settings {
 	/// Default interface scale.
 	#[inline]
 	#[must_use]
-	fn default_scale() -> f32 {
+	const fn default_scale() -> f32 {
 		1.0
 	}
 
 	/// Default theme.
 	#[inline]
 	#[must_use]
-	fn default_theme() -> iced::Theme {
+	const fn default_theme() -> iced::Theme {
 		iced::Theme::Dark
 	}
 
