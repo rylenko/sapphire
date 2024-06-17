@@ -38,33 +38,13 @@ impl App {
 	fn create_header(
 		&self,
 	) -> iced::widget::Column<'static, crate::message::Message> {
-		let mut start_button = iced::widget::button(
-			iced::widget::text("Start").size(self.settings.scale(11.0)),
-		);
-		let mut settings_button = iced::widget::button(
-			iced::widget::text("Settings").size(self.settings.scale(11.0)),
-		);
-
-		match self.page {
-			crate::page::Page::Start => {
-				settings_button = settings_button.on_press(
-					crate::message::Message::Page(crate::page::Page::Settings),
-				);
-			}
-			crate::page::Page::Settings => {
-				start_button = start_button.on_press(
-					crate::message::Message::Page(crate::page::Page::Start),
-				);
-			}
-		}
-
 		let row = iced::widget::row![
 			iced::widget::text("Sapphire 🔐")
 				.size(self.settings.scale(17.0))
 				// To enable emoji support.
 				.shaping(iced::widget::text::Shaping::Advanced),
-			start_button,
-			settings_button,
+			self.create_header_start_button(),
+			self.create_header_settings_button(),
 			iced::widget::button(
 				iced::widget::text("Exit").size(self.settings.scale(11.0))
 			)
@@ -76,6 +56,36 @@ impl App {
 			iced::widget::horizontal_rule(self.settings.scale(10.0)),
 		]
 		.spacing(self.settings.scale(8.0))
+	}
+
+	#[must_use]
+	fn create_header_settings_button(
+		&self,
+	) -> iced::widget::Button<'static, crate::message::Message> {
+		let mut button = iced::widget::button(
+			iced::widget::text("Settings").size(self.settings.scale(11.0)),
+		);
+		if self.page != crate::page::Page::Settings {
+			button = button.on_press(crate::message::Message::Page(
+				crate::page::Page::Settings,
+			));
+		}
+		button
+	}
+
+	#[must_use]
+	fn create_header_start_button(
+		&self,
+	) -> iced::widget::Button<'static, crate::message::Message> {
+		let mut button = iced::widget::button(
+			iced::widget::text("Start").size(self.settings.scale(11.0)),
+		);
+		if self.page != crate::page::Page::Start {
+			button = button.on_press(crate::message::Message::Page(
+				crate::page::Page::Start,
+			));
+		}
+		button
 	}
 
 	#[must_use]
