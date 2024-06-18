@@ -1,37 +1,46 @@
 /// Desktop application based on [`iced`].
-///
-/// TODO: Load settings before window render.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct App {
 	page: crate::page::Page,
 	settings: crate::settings::Settings,
+	settings_path: std::path::PathBuf,
 }
 
 impl App {
-	/// # Commands
+	/// Ensures that a settings file exists. If the file does not exist or file
+	/// is invalid, it is created with default settings.
 	///
-	/// 1. Command to async load settings. This command may fail if the file
-	/// does not exist or has invalid data. In this case, the application
-	/// must set the default settings.
-	fn get_init_commands() -> iced::Command<crate::message::Message> {
-		iced::Command::batch([Self::get_settings_load_command()])
-	}
+	/// # Return
+	///
+	/// Settings from the file and path to the settings file.
+	fn ensure_settings_file() -> Result<
+		(crate::settings::Settings, std::path::PathBuf),
+		EnsureSettingsFileError,
+	> {
+		// Ensure that configuration directory exists.
+		let config_dir = dirs::config_dir()
+			.ok_or(EnsureSettingsFileError::GetRootConfigDir)?
+			.join("sapphire");
+		std::fs::create_dir_all(&config_dir)?;
 
-	fn get_settings_load_command() -> iced::Command<crate::message::Message> {
-		// iced::Command's background task to load settings.
-		let load_settings = async {
-			// TODO: create loader during application initialization.
-			let loader =
-				crate::settings_json::Loader::new(&*crate::settings::PATH);
-			crate::settings::Settings::load(&loader).await
-		};
-		iced::Command::perform(load_settings, |result| {
-			crate::message::Message::Settings(
-				// TODO: Use Message::Error on error and then log an
-				// error.
-				result.expect("Failed to load settings."),
-			)
-		})
+		// Build settings path.
+		let settings_path = config_dir.join("desktop-iced");
+
+		// Try to load settings from the file if exists.
+		if settings_path.exists() {
+			let loader = crate::settings::Loader::new(&settings_path);
+			if let Ok(settings) = loader.load() {
+				return Ok((settings, settings_path));
+			}
+		}
+
+		// Create a file with the default settings if file is invalid or does
+		// not exists.
+		let default_settings = crate::settings::Settings::default();
+		let settings_saver = crate::settings::Saver::new(&settings_path);
+		settings_saver.save(&default_settings)?;
+
+		Ok((default_settings, settings_path))
 	}
 
 	#[must_use]
@@ -205,25 +214,21 @@ impl App {
 	fn get_settings_save_command(
 		&self,
 	) -> iced::Command<crate::message::Message> {
-		// iced::Command's background task to save settings. Settings must be
-		// cloned there.
-		let save = async |settings: crate::settings::Settings| {
-			// Create settings saver and save current settings.
-			// TODO: create saver during application initialization.
-			let saver =
-				crate::settings_json::Saver::new(&*crate::settings::PATH);
-			settings.save(&saver).await
+		// Clone settings to satisfy lifetimes of command executor.
+		let settings = Clone::clone(&self.settings);
+		// Clone settings path to satisfy lifetimes of command executor.
+		let path = Clone::clone(&self.settings_path);
+		// Create saving future.
+		let save = async move {
+			let saver = crate::settings::Saver::new(path);
+			saver.save_async(&settings).await
 		};
-		iced::Command::perform(
-			// TODO: use std::sync::Arc<tokio::sync::Mutex<...>> if
-			// settings become too big.
-			save(Clone::clone(&self.settings)),
-			|result| {
-				// TODO: Use Message::Error on error + iced::Command
-				result.expect("Failed to save settings.");
-				crate::message::Message::None
-			},
-		)
+
+		iced::Command::perform(save, |result| {
+			// TODO: Use Message::Error on error + iced::Command
+			result.expect("Failed to save settings.");
+			crate::message::Message::None
+		})
 	}
 }
 
@@ -233,14 +238,18 @@ impl iced::Application for App {
 	type Message = crate::message::Message;
 	type Theme = iced::Theme;
 
-	#[inline]
 	fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-		// Create the aplication.
+		// Ensure that file with a valid settings exists.
+		let (settings, settings_path) = Self::ensure_settings_file()
+			.expect("Failed to ensure settings file.");
+
+		// Initialize the application.
 		let app = Self {
 			page: crate::page::Page::default(),
-			settings: crate::settings::Settings::default(),
+			settings,
+			settings_path,
 		};
-		(app, Self::get_init_commands())
+		(app, iced::Command::none())
 	}
 
 	#[inline]
@@ -273,7 +282,6 @@ impl iced::Application for App {
 				commands.push(self.get_settings_save_command());
 			}
 			Self::Message::Scale(scale) => self.settings.scale = scale,
-			Self::Message::Settings(settings) => self.settings = settings,
 			Self::Message::Theme(theme) => self.settings.theme = theme,
 		}
 		iced::Command::batch(commands)
@@ -284,6 +292,60 @@ impl iced::Application for App {
 		match self.page {
 			crate::page::Page::Settings => self.create_settings_page(),
 			crate::page::Page::Start => self.create_start_page(),
+		}
+	}
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub(crate) enum EnsureSettingsFileError {
+	/// Failed to create config directory.
+	CreateConfigDir(std::io::Error),
+	/// Failed to get root config directory.
+	GetRootConfigDir,
+	/// Failed to save the default settings.
+	SaveDefaults(Box<crate::settings::SaveError>),
+}
+
+impl From<crate::settings::SaveError> for EnsureSettingsFileError {
+	#[inline]
+	#[must_use]
+	fn from(e: crate::settings::SaveError) -> Self {
+		Self::SaveDefaults(Box::new(e))
+	}
+}
+
+impl From<std::io::Error> for EnsureSettingsFileError {
+	#[inline]
+	#[must_use]
+	fn from(e: std::io::Error) -> Self {
+		Self::CreateConfigDir(e)
+	}
+}
+
+impl core::error::Error for EnsureSettingsFileError {
+	#[must_use]
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+		match self {
+			Self::CreateConfigDir(ref e) => Some(e),
+			Self::GetRootConfigDir => None,
+			Self::SaveDefaults(e_boxed) => Some(e_boxed.as_ref()),
+		}
+	}
+}
+
+impl core::fmt::Display for EnsureSettingsFileError {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			Self::CreateConfigDir(..) => {
+				write!(f, "Failed to create config directory.")
+			}
+			Self::GetRootConfigDir => {
+				write!(f, "Failed to get root config directory.")
+			}
+			Self::SaveDefaults(..) => {
+				write!(f, "Failed to save default settings.")
+			}
 		}
 	}
 }

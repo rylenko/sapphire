@@ -1,19 +1,10 @@
 mod loader;
 mod saver;
 
-pub(crate) use {loader::Loader, saver::Saver};
-
-lazy_static::lazy_static! {
-	/// Application settings file path.
-	///
-	/// TODO: move to method Settings::get_path() and remove lazy_static.
-	/// TODO: use .config/sapphire/desktop-iced.
-	/// TODO: create config dir awith default config if not exists.
-	pub(crate) static ref PATH: std::path::PathBuf =
-		dirs::config_dir()
-			.expect("Failed to get config directory")
-			.join("sapphire-desktop-iced");
-}
+pub(crate) use {
+	loader::Loader,
+	saver::{SaveError, Saver},
+};
 
 /// Settings of the desktop application.
 ///
@@ -42,17 +33,6 @@ impl Settings {
 		Self { scale, theme }
 	}
 
-	/// Loads settings using passed [`loader`].
-	///
-	/// [`loader`]: loader::Loader
-	#[inline]
-	pub(crate) async fn load<L>(loader: &L) -> Result<Self, L::Error>
-	where
-		L: loader::Loader,
-	{
-		loader::Loader::load(loader).await
-	}
-
 	/// Default interface scale.
 	#[inline]
 	#[must_use]
@@ -71,17 +51,6 @@ impl Settings {
 	#[inline]
 	pub(crate) fn restore_defaults(&mut self) {
 		*self = Self::default();
-	}
-
-	/// Saves current settings using passed [`saver`].
-	///
-	/// [`saver`]: saver::Saver
-	#[inline]
-	pub(crate) async fn save<S>(&self, saver: &S) -> Result<(), S::Error>
-	where
-		S: saver::Saver,
-	{
-		saver::Saver::save(saver, self).await
 	}
 
 	/// Scales passed size to interface size using coefficient from the
@@ -165,6 +134,25 @@ mod theme_serde {
 
 #[cfg(test)]
 mod tests {
+	#[tokio::test]
+	async fn test_loader_and_saver() {
+		// Build test path to the settings.
+		let path = std::env::temp_dir().join("sapphire-settings-test");
+		// Create loader and saver.
+		let loader = super::loader::Loader::new(&path);
+		let saver = super::saver::Saver::new(&path);
+
+		// Test loader and sync saver.
+		let mut settings = super::Settings::new(1.25, iced::Theme::Light);
+		assert!(saver.save(&settings).is_ok());
+		assert_eq!(loader.load().unwrap(), settings);
+
+		// Test loader and async saver.
+		settings = super::Settings::new(2.11, iced::Theme::TokyoNight);
+		assert!(saver.save_async(&settings).await.is_ok());
+		assert_eq!(loader.load().unwrap(), settings);
+	}
+
 	#[test]
 	fn test_serde_defaults() -> serde_json::Result<()> {
 		const STR: &str = "{}";

@@ -9,6 +9,5 @@ pub(crate) enum Message {
 	Page(crate::page::Page),
 	SaveSettings,
 	Scale(f32),
-	Settings(crate::settings::Settings),
 	Theme(iced::Theme),
 }
