@@ -24,9 +24,9 @@ impl From<std::io::Error> for LoadError {
 	}
 }
 
-impl core::error::Error for LoadError {
+impl std::error::Error for LoadError {
 	#[must_use]
-	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+	fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
 		match self {
 			Self::Deserialize(ref e) => Some(e),
 			Self::Read(ref e) => Some(e),

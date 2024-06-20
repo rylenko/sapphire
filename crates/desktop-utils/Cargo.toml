@@ -1,0 +1,10 @@
+[dependencies.dirs]
+version = "5.0.1"
+
+[lints]
+workspace = true
+
+[package]
+name = "desktop-utils"
+version = "0.1.0"
+edition = "2021"

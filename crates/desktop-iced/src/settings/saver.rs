@@ -23,9 +23,9 @@ impl From<std::io::Error> for SaveError {
 	}
 }
 
-impl core::error::Error for SaveError {
+impl std::error::Error for SaveError {
 	#[must_use]
-	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+	fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
 		match self {
 			Self::Serialize(ref e) => Some(e),
 			Self::Write(ref e) => Some(e),

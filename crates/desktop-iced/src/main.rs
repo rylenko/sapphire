@@ -5,9 +5,6 @@ TODO: documentation and comments.
 TODO: add page::Page enum, page::Start, page::Settings and move logic to them.
 */
 
-#![feature(async_closure)]
-#![feature(error_in_core)]
-
 mod app;
 mod message;
 mod page;

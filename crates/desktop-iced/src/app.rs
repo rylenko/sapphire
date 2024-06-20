@@ -7,26 +7,6 @@ pub(crate) struct App {
 }
 
 impl App {
-	/// Ensures that the application's configuration directory exists.
-	/// Directory with be created if does not exists.
-	///
-	/// # Return
-	///
-	/// Path to the configuration directory.
-	///
-	/// TODO: Create standalone crate "desktop-utils" with this function?
-	fn ensure_config_dir() -> Result<std::path::PathBuf, EnsureConfigDirError>
-	{
-		// Build configuration directory.
-		let config_dir = dirs::config_dir()
-			.ok_or(EnsureConfigDirError::GetRootConfigDir)?
-			.join("sapphire");
-
-		// Create configuration directory recursively if does not exists.
-		std::fs::create_dir_all(&config_dir)?;
-		Ok(config_dir)
-	}
-
 	/// Ensures that the file with a valid settings exists. If the file does
 	/// not exist or file is invalid, it is created with default settings.
 	///
@@ -38,23 +18,23 @@ impl App {
 		EnsureSettingsFileError,
 	> {
 		// Build settings path.
-		let settings_path = Self::ensure_config_dir()?.join("desktop-iced");
+		let path = desktop_utils::config::ensure_dir()?.join("desktop-iced");
 
 		// Try to load settings from the file if exists.
-		if settings_path.exists() {
-			let loader = crate::settings::Loader::new(&settings_path);
+		if path.exists() {
+			let loader = crate::settings::Loader::new(&path);
 			if let Ok(settings) = loader.load() {
-				return Ok((settings, settings_path));
+				return Ok((settings, path));
 			}
 		}
 
 		// Create a file with the default settings if file is invalid or does
 		// not exists.
 		let default_settings = crate::settings::Settings::default();
-		let settings_saver = crate::settings::Saver::new(&settings_path);
-		settings_saver.save(&default_settings)?;
+		let saver = crate::settings::Saver::new(&path);
+		saver.save(&default_settings)?;
 
-		Ok((default_settings, settings_path))
+		Ok((default_settings, path))
 	}
 
 	#[must_use]
@@ -312,49 +292,9 @@ impl iced::Application for App {
 
 #[derive(Debug)]
 #[non_exhaustive]
-pub(crate) enum EnsureConfigDirError {
-	/// Failed to create config directory.
-	CreateConfigDir(std::io::Error),
-	/// Failed to get root config directory.
-	GetRootConfigDir,
-}
-
-impl From<std::io::Error> for EnsureConfigDirError {
-	#[inline]
-	#[must_use]
-	fn from(e: std::io::Error) -> Self {
-		Self::CreateConfigDir(e)
-	}
-}
-
-impl core::error::Error for EnsureConfigDirError {
-	#[must_use]
-	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
-		match self {
-			Self::CreateConfigDir(ref e) => Some(e),
-			Self::GetRootConfigDir => None,
-		}
-	}
-}
-
-impl core::fmt::Display for EnsureConfigDirError {
-	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-		match self {
-			Self::CreateConfigDir(..) => {
-				write!(f, "Failed to create config directory.")
-			}
-			Self::GetRootConfigDir => {
-				write!(f, "Failed to get root config directory.")
-			}
-		}
-	}
-}
-
-#[derive(Debug)]
-#[non_exhaustive]
 pub(crate) enum EnsureSettingsFileError {
 	/// Failed to ensure that configuration directory exists.
-	EnsureConfigDir(EnsureConfigDirError),
+	EnsureConfigDir(desktop_utils::config::EnsureDirError),
 	/// Failed to save the default settings.
 	SaveDefaults(Box<crate::settings::SaveError>),
 }
@@ -367,17 +307,17 @@ impl From<crate::settings::SaveError> for EnsureSettingsFileError {
 	}
 }
 
-impl From<EnsureConfigDirError> for EnsureSettingsFileError {
+impl From<desktop_utils::config::EnsureDirError> for EnsureSettingsFileError {
 	#[inline]
 	#[must_use]
-	fn from(e: EnsureConfigDirError) -> Self {
+	fn from(e: desktop_utils::config::EnsureDirError) -> Self {
 		Self::EnsureConfigDir(e)
 	}
 }
 
-impl core::error::Error for EnsureSettingsFileError {
+impl std::error::Error for EnsureSettingsFileError {
 	#[must_use]
-	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+	fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
 		match self {
 			Self::EnsureConfigDir(ref e) => Some(e),
 			Self::SaveDefaults(e_boxed) => Some(e_boxed.as_ref()),

@@ -1,5 +1,5 @@
-[dependencies.dirs]
-version = "5.0.1"
+[dependencies.desktop-utils]
+path = "../desktop-utils"
 
 [dependencies.iced]
 features = ["advanced", "tokio"]
