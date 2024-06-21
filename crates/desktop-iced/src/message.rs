@@ -1,11 +1,10 @@
-/// Application update messages.
+/// Application event messages.
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub(crate) enum Message {
 	DefaultSettings,
 	Exit,
-	//Error(Error),
-	None,
+	Flash(String),
 	Page(crate::page::Page),
 	SaveSettings,
 	Scale(f32),

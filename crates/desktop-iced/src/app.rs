@@ -2,6 +2,7 @@
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct App {
 	page: crate::page::Page,
+	flashes: Vec<String>,
 	settings: crate::settings::Settings,
 	settings_path: std::path::PathBuf,
 }
@@ -41,6 +42,7 @@ impl App {
 	fn create_header(
 		&self,
 	) -> iced::widget::Column<'static, crate::message::Message> {
+		// Create row with title and main page buttons.
 		let row = iced::widget::row![
 			iced::widget::text("Sapphire 🔐")
 				.size(self.settings.scale(17.0))
@@ -54,11 +56,23 @@ impl App {
 			.on_press(crate::message::Message::Exit),
 		]
 		.spacing(self.settings.scale(8.0));
-		iced::widget::column![
-			row,
-			iced::widget::horizontal_rule(self.settings.scale(10.0)),
-		]
-		.spacing(self.settings.scale(8.0))
+
+		// Create complete header widget.
+		let mut header =
+			iced::widget::column![row].spacing(self.settings.scale(8.0));
+
+		// TODO: show flashes one at a time with the possibility of closing.
+		// Show the next flash message after closing previous.
+		if let Some(ref flash) = self.flashes.first() {
+			header = header.push(
+				iced::widget::text(flash).size(self.settings.scale(9.0)),
+			);
+		}
+
+		// Puh horizontal line to split header and other content.
+		header = header
+			.push(iced::widget::horizontal_rule(self.settings.scale(10.0)));
+		header
 	}
 
 	#[must_use]
@@ -218,10 +232,24 @@ impl App {
 			saver.save_async(&settings).await
 		};
 
-		iced::Command::perform(save, |result| {
-			// TODO: Use Message::Error on error + iced::Command
-			result.expect("Failed to save settings.");
-			crate::message::Message::None
+		iced::Command::perform(save, |result| match result {
+			// TODO: `flash!("Settings successfully saved.")`
+			Ok(()) => crate::message::Message::Flash(
+				"Settings successfully saved.".to_owned(),
+			),
+			Err(e) => {
+				// Log an error.
+				//
+				// TODO: Use a logger.
+				eprintln!("{:?}", e);
+
+				// Add an error message to display to user.
+				//
+				// TODO: `flash!("Failed to save the settings: {e}.")`
+				crate::message::Message::Flash(format!(
+					"Failed to save the settings: {e}"
+				))
+			}
 		})
 	}
 }
@@ -232,6 +260,7 @@ impl iced::Application for App {
 	type Message = crate::message::Message;
 	type Theme = iced::Theme;
 
+	/// Creates new application.
 	fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
 		// Ensure that file with a valid settings exists.
 		let (settings, settings_path) = Self::ensure_settings_file()
@@ -240,29 +269,37 @@ impl iced::Application for App {
 		// Initialize the application.
 		let app = Self {
 			page: crate::page::Page::default(),
+			flashes: vec![],
 			settings,
 			settings_path,
 		};
 		(app, iced::Command::none())
 	}
 
+	/// Returns current theme.
 	#[inline]
 	#[must_use]
 	fn theme(&self) -> Self::Theme {
 		Clone::clone(&self.settings.theme)
 	}
 
+	/// Returns title of the application.
 	#[inline]
 	#[must_use]
 	fn title(&self) -> String {
 		ToOwned::to_owned("Sapphire")
 	}
 
+	/// Updates application's state using passed event [message].
+	///
+	/// [message]: Self::Message
 	fn update(
 		&mut self,
 		message: Self::Message,
 	) -> iced::Command<Self::Message> {
+		// Commands to execute after update.
 		let mut commands = vec![];
+
 		match message {
 			Self::Message::DefaultSettings => {
 				self.settings.restore_defaults();
@@ -270,7 +307,7 @@ impl iced::Application for App {
 			Self::Message::Exit => {
 				commands.push(iced::window::close(iced::window::Id::MAIN));
 			}
-			Self::Message::None => {}
+			Self::Message::Flash(flash) => self.flashes.push(flash),
 			Self::Message::Page(page) => self.page = page,
 			Self::Message::SaveSettings => {
 				commands.push(self.get_settings_save_command());
@@ -278,6 +315,8 @@ impl iced::Application for App {
 			Self::Message::Scale(scale) => self.settings.scale = scale,
 			Self::Message::Theme(theme) => self.settings.theme = theme,
 		}
+
+		// Execute all collected commands.
 		iced::Command::batch(commands)
 	}
 
