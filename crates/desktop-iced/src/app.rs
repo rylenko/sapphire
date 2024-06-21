@@ -39,70 +39,55 @@ impl App {
 	}
 
 	#[must_use]
+	fn create_exit_button(
+		&self,
+	) -> iced::widget::Button<'_, crate::message::Message> {
+		iced::widget::button(
+			iced::widget::text("Exit").size(self.settings.scale(11.0)),
+		)
+		.on_press(crate::message::Message::Exit)
+	}
+
+	#[must_use]
+	fn create_flash_row(
+		&self,
+	) -> Option<iced::widget::Row<'_, crate::message::Message>> {
+		self.flashes.first().map(|flash| {
+			iced::widget::row![
+				iced::widget::text(flash.as_str())
+					.size(self.settings.scale(10.0))
+					.style(flash.color()),
+				iced::widget::button(
+					iced::widget::text("✖").size(self.settings.scale(5.0))
+				)
+				.on_press(crate::message::Message::RemoveFlash),
+			]
+			.spacing(self.settings.scale(4.0))
+		})
+	}
+
+	#[must_use]
 	fn create_header(
 		&self,
-	) -> iced::widget::Column<'static, crate::message::Message> {
+	) -> iced::widget::Column<'_, crate::message::Message> {
 		// Create row with title and main page buttons.
 		let row = iced::widget::row![
-			iced::widget::text("Sapphire 🔐")
-				.size(self.settings.scale(17.0))
-				// To enable emoji support.
-				.shaping(iced::widget::text::Shaping::Advanced),
-			self.create_header_start_button(),
-			self.create_header_settings_button(),
-			iced::widget::button(
-				iced::widget::text("Exit").size(self.settings.scale(11.0))
-			)
-			.on_press(crate::message::Message::Exit),
+			self.create_title(),
+			self.create_start_page_button(),
+			self.create_settings_page_button(),
+			self.create_exit_button(),
 		]
 		.spacing(self.settings.scale(8.0));
 
 		// Create complete header widget.
 		let mut header =
 			iced::widget::column![row].spacing(self.settings.scale(8.0));
-
-		// TODO: show flashes one at a time with the possibility of closing.
-		// Show the next flash message after closing previous.
-		header = header.push_maybe(self.flashes.first().map(|flash| {
-			iced::widget::text(flash.as_str())
-				.size(self.settings.scale(10.0))
-				.style(flash.color())
-		}));
-
-		// Puh horizontal line to split header and other content.
+		// Push flash row.
+		header = header.push_maybe(self.create_flash_row());
+		// Push horizontal line to split header and other content.
 		header = header
 			.push(iced::widget::horizontal_rule(self.settings.scale(10.0)));
 		header
-	}
-
-	#[must_use]
-	fn create_header_settings_button(
-		&self,
-	) -> iced::widget::Button<'static, crate::message::Message> {
-		let mut button = iced::widget::button(
-			iced::widget::text("Settings").size(self.settings.scale(11.0)),
-		);
-		if self.page != crate::page::Page::Settings {
-			button = button.on_press(crate::message::Message::Page(
-				crate::page::Page::Settings,
-			));
-		}
-		button
-	}
-
-	#[must_use]
-	fn create_header_start_button(
-		&self,
-	) -> iced::widget::Button<'static, crate::message::Message> {
-		let mut button = iced::widget::button(
-			iced::widget::text("Start").size(self.settings.scale(11.0)),
-		);
-		if self.page != crate::page::Page::Start {
-			button = button.on_press(crate::message::Message::Page(
-				crate::page::Page::Start,
-			));
-		}
-		button
 	}
 
 	#[must_use]
@@ -124,9 +109,24 @@ impl App {
 	}
 
 	#[must_use]
+	fn create_settings_page_button(
+		&self,
+	) -> iced::widget::Button<'_, crate::message::Message> {
+		let mut button = iced::widget::button(
+			iced::widget::text("Settings").size(self.settings.scale(11.0)),
+		);
+		if self.page != crate::page::Page::Settings {
+			button = button.on_press(crate::message::Message::Page(
+				crate::page::Page::Settings,
+			));
+		}
+		button
+	}
+
+	#[must_use]
 	fn create_settings_page_scale_slider(
 		&self,
-	) -> iced::widget::Row<'static, crate::message::Message> {
+	) -> iced::widget::Row<'_, crate::message::Message> {
 		iced::widget::row![
 			iced::widget::text("Interface scale:")
 				.size(self.settings.scale(15.0)),
@@ -141,7 +141,7 @@ impl App {
 	#[must_use]
 	fn create_settings_page_restore_defaults_button(
 		&self,
-	) -> iced::widget::Button<'static, crate::message::Message> {
+	) -> iced::widget::Button<'_, crate::message::Message> {
 		iced::widget::button(
 			iced::widget::text("Restore defaults")
 				.size(self.settings.scale(11.0)),
@@ -152,7 +152,7 @@ impl App {
 	#[must_use]
 	fn create_settings_page_save_button(
 		&self,
-	) -> iced::widget::Button<'static, crate::message::Message> {
+	) -> iced::widget::Button<'_, crate::message::Message> {
 		iced::widget::button(
 			iced::widget::text("Save").size(self.settings.scale(11.0)),
 		)
@@ -162,7 +162,7 @@ impl App {
 	#[must_use]
 	fn create_settings_page_theme_list(
 		&self,
-	) -> iced::widget::Row<'static, crate::message::Message> {
+	) -> iced::widget::Row<'_, crate::message::Message> {
 		let list = iced::widget::pick_list(
 			iced::Theme::ALL,
 			Some(Clone::clone(&self.settings.theme)),
@@ -194,9 +194,24 @@ impl App {
 	}
 
 	#[must_use]
+	fn create_start_page_button(
+		&self,
+	) -> iced::widget::Button<'_, crate::message::Message> {
+		let mut button = iced::widget::button(
+			iced::widget::text("Start").size(self.settings.scale(11.0)),
+		);
+		if self.page != crate::page::Page::Start {
+			button = button.on_press(crate::message::Message::Page(
+				crate::page::Page::Start,
+			));
+		}
+		button
+	}
+
+	#[must_use]
 	fn create_start_page_login_button(
 		&self,
-	) -> iced::widget::Button<'static, crate::message::Message> {
+	) -> iced::widget::Button<'_, crate::message::Message> {
 		iced::widget::button(
 			iced::widget::text("Login").size(self.settings.scale(15.0)),
 		)
@@ -205,18 +220,26 @@ impl App {
 	#[must_use]
 	fn create_start_page_register_button(
 		&self,
-	) -> iced::widget::Button<'static, crate::message::Message> {
+	) -> iced::widget::Button<'_, crate::message::Message> {
 		iced::widget::button(
 			iced::widget::text("Register").size(self.settings.scale(15.0)),
 		)
 	}
 
 	#[must_use]
-	fn create_start_page_welcome(&self) -> iced::widget::Text<'static> {
+	fn create_start_page_welcome(&self) -> iced::widget::Text<'_> {
 		iced::widget::text(
 			"A modern decentralized and private messenger with end-to-end encryption."
 		)
 		.size(self.settings.scale(11.0))
+	}
+
+	#[must_use]
+	fn create_title(&self) -> iced::widget::Text {
+		iced::widget::text("Sapphire 🔐")
+			.size(self.settings.scale(17.0))
+			// To enable emoji support.
+			.shaping(iced::widget::text::Shaping::Advanced)
 	}
 
 	fn get_settings_save_command(
@@ -305,11 +328,15 @@ impl iced::Application for App {
 			}
 			Self::Message::Flash(flash) => self.flashes.push(flash),
 			Self::Message::Page(page) => self.page = page,
+			Self::Message::RemoveFlash if !self.flashes.is_empty() => {
+				self.flashes.remove(0);
+			}
 			Self::Message::SaveSettings => {
 				commands.push(self.get_settings_save_command());
 			}
 			Self::Message::Scale(scale) => self.settings.scale = scale,
 			Self::Message::Theme(theme) => self.settings.theme = theme,
+			_ => {}
 		}
 
 		// Execute all collected commands.

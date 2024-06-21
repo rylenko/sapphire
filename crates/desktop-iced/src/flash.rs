@@ -64,13 +64,13 @@ mod tests {
 	fn test_flash_err() {
 		let flash = flash_err!("Hello, {what}! {}.", 123, what = "world");
 		assert_eq!(flash.as_str(), "Hello, world! 123.");
-		assert_eq!(flash.color(), super::Flash::Err("".to_owned()).color());
+		assert_eq!(flash.color(), super::Flash::Err(String::new()).color());
 	}
 
 	#[test]
 	fn test_flash_ok() {
 		let flash = flash_ok!("Hello, {what}! {}.", 123, what = "world");
 		assert_eq!(flash.as_str(), "Hello, world! 123.");
-		assert_eq!(flash.color(), super::Flash::Err("".to_owned()).color());
+		assert_eq!(flash.color(), super::Flash::Ok(String::new()).color());
 	}
 }

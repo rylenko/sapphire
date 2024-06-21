@@ -6,6 +6,7 @@ pub(crate) enum Message {
 	Exit,
 	Flash(crate::flash::Flash),
 	Page(crate::page::Page),
+	RemoveFlash,
 	SaveSettings,
 	Scale(f32),
 	Theme(iced::Theme),
