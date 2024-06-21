@@ -2,7 +2,7 @@
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct App {
 	page: crate::page::Page,
-	flashes: Vec<String>,
+	flashes: Vec<crate::flash::Flash>,
 	settings: crate::settings::Settings,
 	settings_path: std::path::PathBuf,
 }
@@ -63,11 +63,11 @@ impl App {
 
 		// TODO: show flashes one at a time with the possibility of closing.
 		// Show the next flash message after closing previous.
-		if let Some(ref flash) = self.flashes.first() {
-			header = header.push(
-				iced::widget::text(flash).size(self.settings.scale(9.0)),
-			);
-		}
+		header = header.push_maybe(self.flashes.first().map(|flash| {
+			iced::widget::text(flash.as_str())
+				.size(self.settings.scale(10.0))
+				.style(flash.color())
+		}));
 
 		// Puh horizontal line to split header and other content.
 		header = header
@@ -233,21 +233,17 @@ impl App {
 		};
 
 		iced::Command::perform(save, |result| match result {
-			// TODO: `flash!("Settings successfully saved.")`
-			Ok(()) => crate::message::Message::Flash(
-				"Settings successfully saved.".to_owned(),
-			),
+			Ok(()) => crate::message::Message::Flash(flash_ok!(
+				"Settings successfully saved."
+			)),
 			Err(e) => {
 				// Log an error.
 				//
 				// TODO: Use a logger.
-				eprintln!("{:?}", e);
-
+				eprintln!("Failed to save the settings: {e:?}");
 				// Add an error message to display to user.
-				//
-				// TODO: `flash!("Failed to save the settings: {e}.")`
-				crate::message::Message::Flash(format!(
-					"Failed to save the settings: {e}"
+				crate::message::Message::Flash(flash_err!(
+					"Failed to save the settings: {e}."
 				))
 			}
 		})
@@ -264,7 +260,7 @@ impl iced::Application for App {
 	fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
 		// Ensure that file with a valid settings exists.
 		let (settings, settings_path) = Self::ensure_settings_file()
-			.expect("Failed to ensure settings file.");
+			.expect("Failed to ensure settings file");
 
 		// Initialize the application.
 		let app = Self {
@@ -370,11 +366,11 @@ impl core::fmt::Display for EnsureSettingsFileError {
 			Self::EnsureConfigDir(..) => {
 				write!(
 					f,
-					"Failed to ensure that configuration directory exists."
+					"failed to ensure that configuration directory exists"
 				)
 			}
 			Self::SaveDefaults(..) => {
-				write!(f, "Failed to save default settings.")
+				write!(f, "failed to save default settings")
 			}
 		}
 	}

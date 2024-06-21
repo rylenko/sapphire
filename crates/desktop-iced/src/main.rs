@@ -5,6 +5,8 @@ TODO: documentation and comments.
 TODO: add page::Page enum, page::Start, page::Settings and move logic to them.
 */
 
+#[macro_use]
+mod flash;
 mod app;
 mod message;
 mod page;

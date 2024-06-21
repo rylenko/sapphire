@@ -34,10 +34,10 @@ impl core::fmt::Display for EnsureDirError {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
 			Self::CreateDir(..) => {
-				write!(f, "Failed to create configuration directory.")
+				write!(f, "failed to create configuration directory")
 			}
 			Self::GetRootDir => {
-				write!(f, "Failed to get root configuration directory.")
+				write!(f, "failed to get root configuration directory")
 			}
 		}
 	}

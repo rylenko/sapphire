@@ -121,7 +121,7 @@ impl core::fmt::Display for DecryptError {
 	#[inline]
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::Auth => write!(f, "Authentication codes are not equal."),
+			Self::Auth => write!(f, "authentication codes are not equal"),
 		}
 	}
 }

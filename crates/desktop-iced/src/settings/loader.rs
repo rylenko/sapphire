@@ -38,10 +38,10 @@ impl core::fmt::Display for LoadError {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
 			Self::Deserialize(..) => {
-				write!(f, "Failed to deserialize bytes into structure.")
+				write!(f, "failed to deserialize bytes into structure")
 			}
 			Self::Read(..) => {
-				write!(f, "Failed to read a settings from the file.")
+				write!(f, "failed to read a settings from the file")
 			}
 		}
 	}

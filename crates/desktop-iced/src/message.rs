@@ -4,7 +4,7 @@
 pub(crate) enum Message {
 	DefaultSettings,
 	Exit,
-	Flash(String),
+	Flash(crate::flash::Flash),
 	Page(crate::page::Page),
 	SaveSettings,
 	Scale(f32),

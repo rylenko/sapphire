@@ -23,7 +23,7 @@ impl core::fmt::Display for ForwardError {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
 			Self::NoMasterKey => {
-				write!(f, "There is no master key to move chain forward.")
+				write!(f, "there is no master key to move chain forward")
 			}
 		}
 	}
@@ -218,11 +218,11 @@ impl core::fmt::Display for SkipMessageKeysError {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
 			Self::Forward(..) => {
-				write!(f, "Failed to move chain forward to get a message key.")
+				write!(f, "failed to move chain forward to get a message key")
 			}
-			Self::Limit => write!(f, "Too many keys to skip."),
+			Self::Limit => write!(f, "too many keys to skip"),
 			Self::NoHeaderKey => {
-				write!(f, "There is no header key to insert to the storage.")
+				write!(f, "there is no header key to insert to the storage")
 			}
 		}
 	}

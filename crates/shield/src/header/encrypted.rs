@@ -26,7 +26,7 @@ impl core::error::Error for DecryptError {
 impl core::fmt::Display for DecryptError {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
-			Self::Bytes(..) => write!(f, "Failed to decrypt header bytes."),
+			Self::Bytes(..) => write!(f, "failed to decrypt header bytes"),
 		}
 	}
 }

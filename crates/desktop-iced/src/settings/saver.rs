@@ -37,10 +37,10 @@ impl core::fmt::Display for SaveError {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
 			Self::Serialize(..) => {
-				write!(f, "Failed to serialize settings to bytes.")
+				write!(f, "failed to serialize to bytes")
 			}
 			Self::Write(..) => {
-				write!(f, "Failed to write a settings to the file.")
+				write!(f, "failed to write to the file")
 			}
 		}
 	}

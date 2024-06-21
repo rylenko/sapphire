@@ -23,7 +23,7 @@ impl core::fmt::Display for ForwardError {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		match self {
 			Self::NoMasterKey => {
-				write!(f, "There is no master key to move chain forward.")
+				write!(f, "there is no master key to move chain forward")
 			}
 		}
 	}
