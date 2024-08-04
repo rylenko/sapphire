@@ -8,36 +8,6 @@ pub(crate) struct App {
 }
 
 impl App {
-	/// Ensures that the file with a valid settings exists. If the file does
-	/// not exist or file is invalid, it is created with default settings.
-	///
-	/// # Return
-	///
-	/// Settings from the file and path to the settings file.
-	fn ensure_settings_file() -> Result<
-		(crate::settings::Settings, std::path::PathBuf),
-		EnsureSettingsFileError,
-	> {
-		// Build settings path.
-		let path = desktop_utils::config::ensure_dir()?.join("desktop-iced");
-
-		// Try to load settings from the file if exists.
-		if path.exists() {
-			let loader = crate::settings::Loader::new(&path);
-			if let Ok(settings) = loader.load() {
-				return Ok((settings, path));
-			}
-		}
-
-		// Create a file with the default settings if file is invalid or does
-		// not exists.
-		let default_settings = crate::settings::Settings::default();
-		let saver = crate::settings::Saver::new(&path);
-		saver.save(&default_settings)?;
-
-		Ok((default_settings, path))
-	}
-
 	#[must_use]
 	fn create_exit_button(
 		&self,
@@ -251,8 +221,12 @@ impl App {
 		let path = Clone::clone(&self.settings_path);
 		// Create saving future.
 		let save = async move {
+			// Ensure that configuration directory exists or return error string.
+			desktop_utils::config::ensure_dir().map_err(|e| format!("{e}"))?;
+
+			// Save settings to the path or return error string.
 			let saver = crate::settings::Saver::new(path);
-			saver.save_async(&settings).await
+			saver.save_async(&settings).await.map_err(|e| format!("{e}"))
 		};
 
 		iced::Command::perform(save, |result| match result {
@@ -282,7 +256,7 @@ impl iced::Application for App {
 	/// Creates new application.
 	fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
 		// Ensure that file with a valid settings exists.
-		let (settings, settings_path) = Self::ensure_settings_file()
+		let (settings, settings_path) = crate::settings::ensure_file()
 			.expect("Failed to ensure settings file");
 
 		// Initialize the application.
@@ -348,57 +322,6 @@ impl iced::Application for App {
 		match self.page {
 			crate::page::Page::Settings => self.create_settings_page(),
 			crate::page::Page::Start => self.create_start_page(),
-		}
-	}
-}
-
-#[derive(Debug)]
-#[non_exhaustive]
-pub(crate) enum EnsureSettingsFileError {
-	/// Failed to ensure that configuration directory exists.
-	EnsureConfigDir(desktop_utils::config::EnsureDirError),
-	/// Failed to save the default settings.
-	SaveDefaults(Box<crate::settings::SaveError>),
-}
-
-impl From<crate::settings::SaveError> for EnsureSettingsFileError {
-	#[inline]
-	#[must_use]
-	fn from(e: crate::settings::SaveError) -> Self {
-		Self::SaveDefaults(Box::new(e))
-	}
-}
-
-impl From<desktop_utils::config::EnsureDirError> for EnsureSettingsFileError {
-	#[inline]
-	#[must_use]
-	fn from(e: desktop_utils::config::EnsureDirError) -> Self {
-		Self::EnsureConfigDir(e)
-	}
-}
-
-impl std::error::Error for EnsureSettingsFileError {
-	#[must_use]
-	fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-		match self {
-			Self::EnsureConfigDir(ref e) => Some(e),
-			Self::SaveDefaults(e_boxed) => Some(e_boxed.as_ref()),
-		}
-	}
-}
-
-impl core::fmt::Display for EnsureSettingsFileError {
-	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-		match self {
-			Self::EnsureConfigDir(..) => {
-				write!(
-					f,
-					"failed to ensure that configuration directory exists"
-				)
-			}
-			Self::SaveDefaults(..) => {
-				write!(f, "failed to save default settings")
-			}
 		}
 	}
 }
